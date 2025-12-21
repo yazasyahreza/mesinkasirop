@@ -1,0 +1,217 @@
+:root {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --bg-color: #f1f5f9;       /* Abu-abu background */
+  --sidebar-bg: #ffffff;
+  --primary: #3b82f6;        /* Biru cerah */
+  --primary-dark: #2563eb;
+  --text-dark: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --accent-green: #10b981;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg-color);
+  color: var(--text-dark);
+  height: 100vh;
+  overflow: hidden; /* Mencegah scroll body, kita scroll per panel */
+}
+
+/* CONTAINER UTAMA (FULL SCREEN) */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* HEADER */
+header {
+  background: white;
+  padding: 0 24px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+header h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* GRID LAYOUT (SIDEBAR KIRI - KONTEN KANAN) */
+.main-grid {
+  display: grid;
+  grid-template-columns: 320px 1fr; /* Kiri tetap 320px, Kanan sisa layar */
+  height: calc(100vh - 60px); /* Kurangi tinggi header */
+}
+
+/* --- KOLOM KIRI (FORM) --- */
+.sidebar {
+  background: white;
+  border-right: 1px solid var(--border);
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card-title {
+  margin: 0 0 16px 0;
+  font-size: 1rem;
+  color: var(--text-dark);
+  border-bottom: 2px solid var(--bg-color);
+  padding-bottom: 8px;
+}
+
+.input-group {
+  margin-bottom: 16px;
+}
+
+.input-group label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+/* Cari bagian ini di src/App.css */
+.input-group input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  
+  /* --- TAMBAHKAN 2 BARIS INI --- */
+  background: #ffffff;  /* Pastikan background putih bersih */
+  color: #1e293b;       /* Pastikan teks HITAM GELAP (Wajib) */
+  /* ----------------------------- */
+}
+
+/* Tambahkan juga ini untuk jaga-jaga di Search Bar tabel */
+.search-input {
+  /* ...kode lama... */
+  color: #1e293b; /* Paksa teks hitam */
+  background: #ffffff;
+}
+
+.input-group input:focus {
+  background: white;
+  border-color: var(--primary);
+  outline: 2px solid rgba(59, 130, 246, 0.1);
+}
+
+.btn-primary {
+  width: 100%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
+}
+.btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+/* --- KOLOM KANAN (KONTEN) --- */
+.content-area {
+  padding: 24px;
+  overflow-y: auto; /* Scrollable jika konten panjang */
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* STATS CARDS (Agar kanan tidak kosong) */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 Kartu berjejer */
+  gap: 16px;
+}
+
+.stat-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.stat-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 600; }
+.stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text-dark); margin-top: 4px; }
+
+/* TABEL */
+.table-card {
+  background: white;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  overflow: hidden;
+  flex: 1; /* Isi sisa tinggi yang ada */
+  display: flex;
+  flex-direction: column;
+}
+
+.table-header-tools {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.search-input {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  width: 250px;
+  background-color: #f8fafc;
+}
+
+.table-scroll {
+  overflow: auto;
+  flex: 1;
+}
+
+table { width: 100%; border-collapse: collapse; }
+th { 
+  background: #f8fafc; 
+  text-align: left; 
+  padding: 16px 24px; 
+  font-size: 0.75rem; 
+  text-transform: uppercase; 
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid var(--border);
+}
+td { padding: 16px 24px; border-bottom: 1px solid var(--border); font-size: 0.95rem; }
+tr:hover { background: #f1f5f9; }
+
+/* Badge Stok */
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 99px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.badge-ok { background: #dcfce7; color: #166534; }
+.badge-low { background: #fee2e2; color: #991b1b; }
