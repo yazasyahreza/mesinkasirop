@@ -39,6 +39,10 @@ const api = {
 
   // Fungsi restore data
   restoreDatabase: () => ipcRenderer.invoke("restore-db"),
+
+  // --- TAMBAHAN DI electron/preload.ts ---
+  confirmPayment: (data: { total: string; bayar: string; kembalian: string }) =>
+    ipcRenderer.invoke("confirm-payment", data),
 };
 
 // Mengekspos API ke dunia luar (Window)

@@ -19,8 +19,6 @@ export default function Kasir({
   setPay,
 }: KasirProps) {
   const [scan, setScan] = useState("");
-
-  // State notifikasi
   const [message, setMessage] = useState<{
     text: string;
     type: "error" | "success";
@@ -28,33 +26,23 @@ export default function Kasir({
 
   const scanRef = useRef<HTMLInputElement>(null);
 
-  // Auto fokus
   useEffect(() => {
     setTimeout(() => scanRef.current?.focus(), 100);
   }, []);
 
-  // Helper format rupiah
   const formatRp = (num: number) => "Rp " + num.toLocaleString("id-ID");
 
-  const handleScan = (e: React.FormEvent) => {
-    e.preventDefault();
-    setMessage(null);
-
-    const p = products.find((i) => i.barcode === scan);
-
-    if (!p) {
-      setMessage({ text: "❌ Barang tidak ditemukan!", type: "error" });
-      setScan("");
-      return;
-    }
+  // --- LOGIKA MENAMBAH ITEM ---
+  const handleAddItem = (barcode: string) => {
+    const p = products.find((i) => i.barcode === barcode);
+    if (!p) return false;
 
     const exist = cart.find((c) => c.id === p.id);
     const currentQty = exist ? Number(exist.qty) : 0;
 
     if (currentQty + 1 > p.stock) {
       setMessage({ text: `❌ Stok habis! Sisa: ${p.stock}`, type: "error" });
-      setScan("");
-      return;
+      return true; // Return true supaya input tetap di-clear (handled)
     }
 
     if (exist) {
@@ -64,7 +52,47 @@ export default function Kasir({
     } else {
       setCart([...cart, { ...p, qty: 1 }]);
     }
-    setScan("");
+    return true;
+  };
+
+  // --- [UBAH] INPUT HANYA MENGUBAH STATE (VISUAL) ---
+  const handleScanChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setScan(e.target.value);
+    // Kita hapus logika "langsung masuk" di sini agar ada delay
+  };
+
+  // --- [BARU] EFEK DELAY (AUTO SCAN) ---
+  useEffect(() => {
+    // Jika input kosong, diamkan
+    if (!scan) return;
+
+    // Cek apakah kode yang diketik cocok dengan salah satu produk
+    const found = products.find((p) => p.barcode === scan);
+
+    if (found) {
+      // Jika cocok, buat Timer delay (misal: 800ms)
+      const timer = setTimeout(() => {
+        handleAddItem(scan);
+        setScan(""); // Hapus input setelah delay selesai
+      }, 200); // <--- ATUR DURASI DELAY DISINI (800ms = 0.8 detik)
+
+      // Cleanup: Jika user mengetik lagi sebelum 800ms, timer di-reset
+      return () => clearTimeout(timer);
+    }
+  }, [scan, products, cart]); // Dependency ke cart penting agar state update benar
+
+  // --- LOGIKA ENTER MANUAL (TETAP INSTAN) ---
+  const handleScanSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!scan) return;
+
+    // Jika ditekan Enter, langsung eksekusi tanpa nunggu delay
+    const success = handleAddItem(scan);
+    if (!success) {
+      setMessage({ text: "❌ Barang tidak ditemukan!", type: "error" });
+    } else {
+      setScan("");
+    }
   };
 
   const handleQtyChange = (id: number, val: string) => {
@@ -81,10 +109,8 @@ export default function Kasir({
   const handleQtyBlur = (id: number) => {
     const item = cart.find((c) => c.id === id);
     if (!item) return;
-
     let finalQty = Number(item.qty);
     if (item.qty === "" || finalQty < 1) finalQty = 1;
-
     if (finalQty > item.stock) {
       setMessage({
         text: `⚠️ Stok hanya tersedia ${item.stock}`,
@@ -95,19 +121,30 @@ export default function Kasir({
     setCart(cart.map((c) => (c.id === id ? { ...c, qty: finalQty } : c)));
   };
 
+  // --- LOGIKA CHECKOUT (NATIVE DIALOG) ---
   const handleCheckout = async () => {
     setMessage(null);
     const cleanCart = cart.map((c) => ({ ...c, qty: Number(c.qty) || 1 }));
-    const total = cleanCart.reduce((a, b) => a + b.price * b.qty, 0);
+    const totalCalc = cleanCart.reduce((a, b) => a + b.price * b.qty, 0);
     const money = Number(pay.replace(/\D/g, ""));
 
-    if (money < total) {
+    if (money < totalCalc) {
       setMessage({ text: "❌ Uang pembayaran kurang!", type: "error" });
       return;
     }
 
+    // Panggil Native Dialog via Backend
     // @ts-ignore
-    const res = await window.api.createTransaction(cleanCart, total);
+    const isConfirmed = await window.api.confirmPayment({
+      total: formatRp(totalCalc),
+      bayar: formatRp(money),
+      kembalian: formatRp(money - totalCalc),
+    });
+
+    if (!isConfirmed) return;
+
+    // @ts-ignore
+    const res = await window.api.createTransaction(cleanCart, totalCalc);
 
     if (res.success) {
       setMessage({ text: "✅ Transaksi Berhasil Disimpan!", type: "success" });
@@ -119,6 +156,17 @@ export default function Kasir({
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (cart.length > 0) handleCheckout();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cart, pay]);
+
   const total = cart.reduce((a, b) => a + b.price * Number(b.qty), 0);
   const kembalian = (Number(pay.replace(/\D/g, "")) || 0) - total;
 
@@ -127,7 +175,6 @@ export default function Kasir({
       {/* KIRI: KERANJANG */}
       <div className="content-area">
         <h3 style={{ marginTop: 0 }}>🛒 Keranjang Belanja</h3>
-
         <div className="table-scroll">
           <table>
             <thead>
@@ -176,8 +223,6 @@ export default function Kasir({
                           border: "1px solid #cbd5e1",
                           borderRadius: "4px",
                           fontWeight: "bold",
-                          background: "white",
-                          color: "black",
                         }}
                       />
                     </td>
@@ -237,16 +282,16 @@ export default function Kasir({
           >
             Scan Barcode
           </label>
-          <form onSubmit={handleScan}>
+          <form onSubmit={handleScanSubmit}>
             <input
               ref={scanRef}
               value={scan}
-              onChange={(e) => setScan(e.target.value)}
+              onChange={handleScanChange}
               placeholder="Scan barang..."
               autoFocus
               style={{
                 width: "100%",
-                boxSizing: "border-box", // [FIX] Agar padding tidak membuat input melebar keluar
+                boxSizing: "border-box",
                 padding: "12px 15px",
                 fontSize: "1rem",
                 border: "2px solid #3b82f6",
@@ -294,7 +339,7 @@ export default function Kasir({
               type="number"
               style={{
                 width: "100%",
-                boxSizing: "border-box", // [FIX] Tambahkan ini juga agar rapi
+                boxSizing: "border-box",
                 padding: "12px",
                 fontSize: "1.2rem",
                 fontWeight: "bold",
@@ -351,6 +396,7 @@ export default function Kasir({
             onClick={handleCheckout}
             disabled={!cart.length}
             className="btn-primary"
+            title="Tekan Ctrl + Enter"
             style={{
               width: "100%",
               padding: "15px",

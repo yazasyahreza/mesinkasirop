@@ -125,6 +125,27 @@ app.whenReady().then(() => {
     return createTransaction(items, total);
   });
 
+  // --- TAMBAHAN DI electron/main.ts ---
+
+  // Handler Konfirmasi Pembayaran (Native Dialog)
+  ipcMain.handle(
+    "confirm-payment",
+    async (_event, { total, bayar, kembalian }) => {
+      const { response } = await dialog.showMessageBox({
+        type: "question", // Ikon tanda tanya
+        buttons: ["Batal", "Bayar"], // Tombol pilihan
+        defaultId: 1, // Tombol default (Bayar) terpilih
+        cancelId: 0, // Jika di-close (X), dianggap Batal
+        title: "Konfirmasi Pembayaran",
+        message: "Lanjutkan proses pembayaran?",
+        detail: `Total Tagihan:\t ${total}\nUang Diterima:\t ${bayar}\nKembalian:\t ${kembalian}`,
+        noLink: true,
+      });
+
+      return response === 1; // Mengembalikan TRUE jika user klik "Bayar"
+    }
+  );
+
   // Handler Lihat Riwayat Transaksi
   ipcMain.handle("get-transactions", () => getTransactions());
   ipcMain.handle("get-transaction-details", (_event, id) =>
