@@ -1,51 +1,28 @@
 import { contextBridge, ipcRenderer } from "electron";
 
-// Kita membuat API khusus untuk Frontend
 const api = {
-  // Fungsi untuk meminta data produk
-  fetchProducts: () => ipcRenderer.invoke("get-products"),
-
-  // Fungsi untuk menambah produk baru
-  createProduct: (product: any) => ipcRenderer.invoke("add-product", product),
-
-  // Fungsi untuk mengedit data produk
+  // Produk
+  fetchProducts: () => ipcRenderer.invoke("fetch-products"),
+  createProduct: (product: any) =>
+    ipcRenderer.invoke("create-product", product),
   updateProduct: (id: number, product: any) =>
-    ipcRenderer.invoke("update-product", { id, product }),
-
-  // Fungsi untuk menghapus data produk
+    ipcRenderer.invoke("update-product", id, product),
   deleteProduct: (id: number) => ipcRenderer.invoke("delete-product", id),
 
-  // Fungsi bayar
+  // Transaksi
   createTransaction: (items: any[], total: number) =>
-    ipcRenderer.invoke("create-transaction", { items, total }),
+    ipcRenderer.invoke("create-transaction", items, total),
+  confirmPayment: (data: any) => ipcRenderer.invoke("confirm-payment", data),
 
-  // Fungsi riwayat
-  fetchTransactions: () => ipcRenderer.invoke("get-transactions"),
-  fetchTransactionDetails: (id: number) =>
-    ipcRenderer.invoke("get-transaction-details", id),
+  // Laporan
+  fetchTodayReport: () => ipcRenderer.invoke("fetch-today-report"),
+  fetchTodayTransactions: () => ipcRenderer.invoke("fetch-today-transactions"),
 
-  // Fungsi hapus riwayat
-  deleteTransaction: (id: number) =>
-    ipcRenderer.invoke("delete-transaction", id),
-
-  // Fungsi cari data berdasarkan rentang tanggal
-  fetchTransactionsByRange: (start: string, end: string) =>
-    ipcRenderer.invoke("get-transactions-range", { start, end }),
-
-  fetchTodayReport: () => ipcRenderer.invoke("get-today-report"),
-
-  // Fungsi backup data
-  backupDatabase: () => ipcRenderer.invoke("backup-db"),
-
-  // Fungsi restore data
-  restoreDatabase: () => ipcRenderer.invoke("restore-db"),
-
-  // --- TAMBAHAN DI electron/preload.ts ---
-  confirmPayment: (data: { total: string; bayar: string; kembalian: string }) =>
-    ipcRenderer.invoke("confirm-payment", data),
+  // System
+  backupDatabase: () => ipcRenderer.invoke("backup-database"),
+  restoreDatabase: () => ipcRenderer.invoke("restore-database"),
 };
 
-// Mengekspos API ke dunia luar (Window)
 if (process.contextIsolated) {
   try {
     contextBridge.exposeInMainWorld("api", api);
@@ -53,6 +30,6 @@ if (process.contextIsolated) {
     console.error(error);
   }
 } else {
-  // @ts-ignore (ignore error types untuk fallback)
+  // @ts-ignore
   window.api = api;
 }

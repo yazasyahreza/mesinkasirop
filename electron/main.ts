@@ -1,32 +1,28 @@
-import fs from "fs";
 import { app, BrowserWindow, ipcMain, dialog } from "electron";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-// Tambahkan createTransaction
+import fs from "fs";
+
 import {
   initDB,
-  addProduct,
   getProducts,
+  addProduct,
   updateProduct,
   deleteProduct,
   createTransaction,
-  getTransactions,
-  getTransactionDetails,
-  deleteTransaction,
-  getTransactionsByRange,
   getTodayReport,
+  getTodayTransactions,
+  autoClearOldData, // [BARU] Import fungsi ini
   db,
+  dbPath,
 } from "./database/db";
 
-// --- [INI SOLUSI ERROR TERMINAL ANDA] ---
 const require = createRequire(import.meta.url);
-const __filename = fileURLToPath(import.meta.url); // <--- Baris ini yang dicari sistem
+const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// ----------------------------------------
 
 process.env.APP_ROOT = path.join(__dirname, "..");
-
 export const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
 export const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
 export const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
@@ -45,7 +41,11 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
+    show: false,
   });
+
+  win.maximize();
+  win.show();
 
   win.webContents.on("did-finish-load", () => {
     win?.webContents.send("main-process-message", new Date().toLocaleString());
@@ -72,198 +72,131 @@ app.on("activate", () => {
 });
 
 app.whenReady().then(() => {
-  // 1. Jalankan Database
+  // 1. Inisialisasi Database
   initDB();
 
-  // 2. Setup IPC
-  ipcMain.handle("get-products", () => getProducts());
-  ipcMain.handle("add-product", (_event, product) => addProduct(product));
+  // 2. [OTOMATIS] Hapus Data Transaksi Kemarin (Reset Harian)
+  autoClearOldData();
 
-  // Update & Delete yang baru kita buat ditaruh DISINI:
-  ipcMain.handle("update-product", (_event, { id, product }) =>
-    updateProduct(id, product)
-  );
+  // 3. Setup IPC Handlers
+  ipcMain.handle("fetch-products", async () => {
+    return getProducts();
+  });
 
-  // Handler Hapus Produk (Full Native Dialog)
+  ipcMain.handle("create-product", async (_event, product) => {
+    return addProduct(product);
+  });
+
+  ipcMain.handle("update-product", async (_event, id, product) => {
+    return updateProduct(id, product);
+  });
+
   ipcMain.handle("delete-product", async (_event, id) => {
-    // 1. Dialog Konfirmasi (Sudah ada sebelumnya)
     const { response } = await dialog.showMessageBox({
       type: "warning",
       buttons: ["Batal", "Hapus"],
-      defaultId: 0,
+      defaultId: 1,
       cancelId: 0,
       title: "Konfirmasi Hapus",
       message: "Yakin ingin menghapus barang ini?",
-      detail: "Data stok barang ini akan hilang permanen dari database.",
+      detail: "Data yang dihapus tidak bisa dikembalikan.",
     });
 
     if (response === 0) return { success: false };
-
-    // 2. Jalankan Hapus
-    const res = deleteProduct(id);
-
-    // 3. [BARU] Jika Gagal, Backend yang memunculkan Dialog Error (Native)
-    // Ini AMAN, tidak akan membuat input macet.
-    if (!res.success) {
-      const isForeignKey = res.error && res.error.includes("FOREIGN KEY");
-
-      await dialog.showMessageBox({
-        type: "error", // Ikon Silang Merah
-        title: "Gagal Menghapus",
-        message: "Barang ini tidak dapat dihapus!",
-        detail: isForeignKey
-          ? "Barang ini sudah tercatat dalam Riwayat Transaksi.\nMenghapusnya akan merusak Laporan Keuangan."
-          : res.error || "Terjadi kesalahan database.",
-      });
-    }
-
-    return res;
+    return deleteProduct(id);
   });
 
-  // Handler Pembayaran
-  ipcMain.handle("create-transaction", (_event, { items, total }) => {
+  ipcMain.handle("create-transaction", async (_event, items, total) => {
     return createTransaction(items, total);
   });
 
-  // --- TAMBAHAN DI electron/main.ts ---
-
-  // Handler Konfirmasi Pembayaran (Native Dialog)
   ipcMain.handle(
     "confirm-payment",
     async (_event, { total, bayar, kembalian }) => {
       const { response } = await dialog.showMessageBox({
-        type: "question", // Ikon tanda tanya
-        buttons: ["Batal", "Bayar"], // Tombol pilihan
-        defaultId: 1, // Tombol default (Bayar) terpilih
-        cancelId: 0, // Jika di-close (X), dianggap Batal
+        type: "question",
+        buttons: ["Batal", "Bayar"],
+        defaultId: 1,
+        cancelId: 0,
         title: "Konfirmasi Pembayaran",
         message: "Lanjutkan proses pembayaran?",
         detail: `Total Tagihan:\t ${total}\nUang Diterima:\t ${bayar}\nKembalian:\t ${kembalian}`,
         noLink: true,
       });
-
-      return response === 1; // Mengembalikan TRUE jika user klik "Bayar"
+      return response === 1;
     }
   );
 
-  // Handler Lihat Riwayat Transaksi
-  ipcMain.handle("get-transactions", () => getTransactions());
-  ipcMain.handle("get-transaction-details", (_event, id) =>
-    getTransactionDetails(id)
-  );
-
-  // Handler Hapus Riwayat Transaksi
-  ipcMain.handle("delete-transaction", (_event, id) => deleteTransaction(id));
-
-  // Handler Filter Tanggal
-  ipcMain.handle("get-transactions-range", (_event, { start, end }) => {
-    return getTransactionsByRange(start, end);
+  ipcMain.handle("fetch-today-report", async () => {
+    return getTodayReport();
   });
 
-  ipcMain.handle("get-today-report", () => getTodayReport());
+  ipcMain.handle("fetch-today-transactions", async () => {
+    return getTodayTransactions();
+  });
 
-  // 1. HANDLER BACKUP (DENGAN NATIVE DIALOG)
-  ipcMain.handle("backup-db", async () => {
-    // [BARU] Tanya Konfirmasi via Native Dialog (Anti-Freeze)
-    const { response } = await dialog.showMessageBox({
-      type: "question",
-      buttons: ["Batal", "Ya, Backup"],
-      defaultId: 1,
-      cancelId: 0,
-      title: "Konfirmasi Backup",
-      message: "Apakah Anda ingin mem-backup database Toko Ayah sekarang?",
-      detail: "Pastikan Anda memilih folder yang aman (seperti Google Drive).",
+  ipcMain.handle("backup-database", async () => {
+    const { filePath } = await dialog.showSaveDialog({
+      title: "Backup Database Toko",
+      defaultPath: `Backup_Toko_Ayah_${new Date()
+        .toISOString()
+        .slice(0, 10)}.db`,
+      filters: [{ name: "Database Files", extensions: ["db"] }],
     });
 
-    // Jika user pilih Batal (indeks 0), berhenti.
-    if (response === 0) return { success: false, msg: "Dibatalkan" };
-
-    // Lanjut pilih folder
-    const result = await dialog.showOpenDialog({
-      title: "Pilih Folder Penyimpanan",
-      properties: ["openDirectory"],
-    });
-
-    if (result.canceled) return { success: false, msg: "Dibatalkan" };
-
-    const destinationFolder = result.filePaths[0];
-    const date = new Date();
-    const timestamp = `${date.getFullYear()}-${String(
-      date.getMonth() + 1
-    ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}_${String(
-      date.getHours()
-    ).padStart(2, "0")}-${String(date.getMinutes()).padStart(2, "0")}`;
-    const fileName = `backup-toko-${timestamp}.db`;
-    const destinationPath = path.join(destinationFolder, fileName);
+    if (!filePath) return { success: false };
 
     try {
-      await db.backup(destinationPath);
-
-      // [BARU] Tampilkan Pesan Sukses dari sini juga
+      await db.backup(filePath);
       await dialog.showMessageBox({
         type: "info",
         title: "Backup Berhasil",
-        message: `Data berhasil diamankan!\nLokasi: ${destinationPath}`,
+        message: "Data toko berhasil disimpan!",
+        detail: `Lokasi: ${filePath}`,
       });
-
-      return { success: true, path: destinationPath };
-    } catch (error: any) {
-      dialog.showErrorBox("Gagal Backup", error.message);
-      return { success: false, msg: error.message };
+      return { success: true };
+    } catch (e: any) {
+      dialog.showErrorBox("Backup Gagal", e.message);
+      return { success: false, msg: e.message };
     }
   });
 
-  // 2. HANDLER RESTORE (DENGAN NATIVE DIALOG)
-  ipcMain.handle("restore-db", async () => {
-    // [BARU] Warning Keras via Native Dialog
+  ipcMain.handle("restore-database", async () => {
     const { response } = await dialog.showMessageBox({
       type: "warning",
-      buttons: ["Batal", "Lanjutkan Restore"],
+      buttons: ["Batal", "Pilih File Backup"],
       defaultId: 0,
       cancelId: 0,
-      title: "⚠️ PERINGATAN KERAS",
-      message: "Apakah Anda yakin ingin me-Restore database?",
+      title: "⚠️ PERINGATAN RESTORE",
+      message: "Restore akan menimpa SEMUA data saat ini!",
       detail:
-        "Data toko saat ini akan DITIMPA & HILANG permanen. Aplikasi akan RESTART otomatis.",
+        "Pastikan Anda memilih file backup yang benar. Aplikasi akan restart otomatis setelah restore.",
     });
 
-    if (response === 0) return { success: false, msg: "Dibatalkan" };
+    if (response === 0) return { success: false };
 
-    const result = await dialog.showOpenDialog({
+    const { filePaths } = await dialog.showOpenDialog({
       title: "Pilih File Backup (.db)",
-      filters: [{ name: "Database", extensions: ["db"] }],
       properties: ["openFile"],
+      filters: [{ name: "Database Files", extensions: ["db"] }],
     });
 
-    if (result.canceled) return { success: false, msg: "Dibatalkan" };
+    if (!filePaths || filePaths.length === 0) return { success: false };
 
-    const sourcePath = result.filePaths[0];
-    const dbFolder = app.getPath("userData");
-    const dbPath = path.join(dbFolder, "toko-ayah-v3.db");
-    const walPath = path.join(dbFolder, "toko-ayah-v3.db-wal");
-    const shmPath = path.join(dbFolder, "toko-ayah-v3.db-shm");
+    const backupFile = filePaths[0];
 
     try {
       db.close();
-
-      if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
-      if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
-      if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
-
-      fs.copyFileSync(sourcePath, dbPath);
-
-      // Restart
-      if (app.isPackaged) {
-        app.relaunch();
-      } else {
-        app.relaunch({ args: process.argv.slice(1).concat(["--relaunch"]) });
-      }
-      app.exit(0);
-
+      fs.copyFileSync(backupFile, dbPath);
+      app.relaunch();
+      app.exit();
       return { success: true };
-    } catch (error: any) {
-      dialog.showErrorBox("Gagal Restore", error.message);
-      return { success: false, msg: error.message };
+    } catch (e: any) {
+      dialog.showErrorBox(
+        "Restore Gagal",
+        "Pastikan file tidak sedang digunakan.\n" + e.message
+      );
+      return { success: false, msg: e.message };
     }
   });
 

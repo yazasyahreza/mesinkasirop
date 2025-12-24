@@ -15,10 +15,12 @@ export interface CartItem extends Product {
 }
 
 export interface Transaction {
-  id: number;
-  total_amount: number;
-  total_profit: number;
   payment_date: string;
+  product_name: string;
+  price: number;
+  qty: number;
+  subtotal: number;
+  profit: number;
 }
 
 export interface TransactionDetail {
@@ -47,10 +49,6 @@ declare global {
       // Transaksi
       createTransaction: (items: any[], total: number) => Promise<any>;
       fetchTransactions: () => Promise<Transaction[]>;
-      fetchTransactionsByRange: (
-        start: string,
-        end: string
-      ) => Promise<Transaction[]>;
       fetchTransactionDetails: (id: number) => Promise<TransactionDetail[]>;
       deleteTransaction: (id: number) => Promise<any>;
 
