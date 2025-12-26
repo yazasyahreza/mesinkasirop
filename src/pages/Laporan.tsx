@@ -1,32 +1,15 @@
 import { useState, useEffect } from "react";
 import { DailyReport, Transaction } from "../types";
 
-// --- KOLEKSI IKON SVG MODERN ---
+// --- KOLEKSI IKON ---
 const Icons = {
-  Chart: () => (
-    <svg
-      width="20"
-      height="20"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      viewBox="0 0 24 24"
-    >
-      <path d="M3 3v18h18" />
-      <path d="M18 9l-5-5-5 5-5-5" />
-    </svg>
-  ),
   Refresh: () => (
     <svg
-      width="16"
-      height="16"
+      width="14"
+      height="14"
       fill="none"
       stroke="currentColor"
       strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
       viewBox="0 0 24 24"
     >
       <path d="M23 4v6h-6" />
@@ -36,13 +19,11 @@ const Icons = {
   ),
   Receipt: () => (
     <svg
-      width="48"
-      height="48"
+      width="40"
+      height="40"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
       viewBox="0 0 24 24"
     >
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -54,13 +35,11 @@ const Icons = {
   ),
   Money: () => (
     <svg
-      width="48"
-      height="48"
+      width="40"
+      height="40"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
       viewBox="0 0 24 24"
     >
       <rect x="2" y="5" width="20" height="14" rx="2" />
@@ -69,17 +48,28 @@ const Icons = {
   ),
   Trending: () => (
     <svg
-      width="48"
-      height="48"
+      width="40"
+      height="40"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
       viewBox="0 0 24 24"
     >
       <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
       <polyline points="17 6 23 6 23 12" />
+    </svg>
+  ),
+  Discount: () => (
+    <svg
+      width="40"
+      height="40"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      viewBox="0 0 24 24"
+    >
+      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+      <line x1="7" y1="7" x2="7.01" y2="7" />
     </svg>
   ),
   Empty: () => (
@@ -101,7 +91,9 @@ const Icons = {
 export default function Laporan() {
   const [report, setReport] = useState<DailyReport>({
     total_transaction: 0,
-    total_omset: 0,
+    gross_sales: 0,
+    total_discount: 0,
+    net_sales: 0,
     total_profit: 0,
   });
 
@@ -116,61 +108,51 @@ export default function Laporan() {
       // @ts-ignore
       const dataStats = await window.api.fetchTodayReport();
       if (dataStats) setReport(dataStats);
-
       // @ts-ignore
       const dataTrans = await window.api.fetchTodayTransactions();
-
-      if (dataTrans && Array.isArray(dataTrans)) {
-        const sorted = dataTrans.sort((a: any, b: any) => {
-          const dateA = new Date(a.payment_date).getTime();
-          const dateB = new Date(b.payment_date).getTime();
-          return dateB - dateA;
-        });
-        setTransactions(sorted);
-      }
+      if (dataTrans) setTransactions(dataTrans);
     } catch (error) {
-      console.error("Gagal memuat data:", error);
+      console.error(error);
     }
   };
 
+  // --- COMPONENT CARD YANG LEBIH COMPACT ---
   const StatCard = ({ title, value, subtext, gradient, icon }: any) => (
     <div
       style={{
         background: gradient,
         color: "white",
-        padding: "25px",
-        borderRadius: "16px",
+        padding: "16px", // Padding diperkecil (sebelumnya 20-25px)
+        borderRadius: "12px",
         flex: 1,
-        minWidth: "240px",
-        boxShadow:
-          "0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.1)",
+        minWidth: "0", // Penting agar tidak memaksa lebar grid
+        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.1)",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         position: "relative",
         overflow: "hidden",
-        transition: "transform 0.2s ease",
         border: "1px solid rgba(255,255,255,0.1)",
       }}
     >
       <div style={{ zIndex: 1 }}>
         <div
           style={{
-            fontSize: "0.85rem",
-            fontWeight: 600,
+            fontSize: "0.7rem",
+            fontWeight: 700,
             textTransform: "uppercase",
-            letterSpacing: "1px",
             opacity: 0.9,
-            marginBottom: "8px",
+            marginBottom: "4px",
           }}
         >
           {title}
         </div>
         <div
           style={{
-            fontSize: "2.2rem",
+            fontSize: "1.4rem",
             fontWeight: "800",
             letterSpacing: "-0.5px",
+            lineHeight: "1.2",
           }}
         >
           {value}
@@ -178,10 +160,13 @@ export default function Laporan() {
         {subtext && (
           <div
             style={{
-              fontSize: "0.8rem",
-              marginTop: "5px",
-              opacity: 0.8,
-              fontStyle: "italic",
+              fontSize: "0.65rem",
+              marginTop: "4px",
+              opacity: 0.9,
+              background: "rgba(0,0,0,0.2)",
+              width: "fit-content",
+              padding: "2px 6px",
+              borderRadius: "4px",
             }}
           >
             {subtext}
@@ -191,10 +176,10 @@ export default function Laporan() {
       <div
         style={{
           position: "absolute",
-          right: "-5px",
-          bottom: "-5px",
+          right: "-8px",
+          bottom: "-8px",
           opacity: 0.2,
-          transform: "rotate(-10deg)",
+          transform: "rotate(-10deg) scale(1)",
         }}
       >
         {icon}
@@ -202,59 +187,49 @@ export default function Laporan() {
     </div>
   );
 
+  const getMethodColor = (m: string) => {
+    if (m === "QRIS") return { bg: "rgba(59, 130, 246, 0.2)", text: "#60a5fa" };
+    if (m === "DEBIT")
+      return { bg: "rgba(168, 85, 247, 0.2)", text: "#c084fc" };
+    return { bg: "rgba(16, 185, 129, 0.2)", text: "#4ade80" };
+  };
+
   return (
+    // Padding Container Utama dikurangi jadi 20px
     <div
       className="main-grid"
       style={{
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        padding: "30px",
-        boxSizing: "border-box",
+        padding: "20px",
         height: "100%",
         overflow: "hidden",
-        background: "#0f172a", // Background Dark Navy
+        background: "#0f172a",
+        boxSizing: "border-box",
       }}
     >
-      {/* CSS Injection */}
-      <style>
-        {`
-          .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-          .custom-scroll::-webkit-scrollbar-track { background: transparent; }
-          .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; border: 2px solid #1e293b; }
-          .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
-          .laporan-row:hover { background-color: rgba(255, 255, 255, 0.05) !important; transition: background-color 0.2s ease; }
-        `}
-      </style>
+      <style>{`.custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; } .custom-scroll::-webkit-scrollbar-track { background: transparent; } .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; } .laporan-row:hover { background-color: rgba(255, 255, 255, 0.05) !important; }`}</style>
 
-      {/* --- HEADER --- */}
-      <div style={{ flex: "0 0 auto", marginBottom: "30px" }}>
+      {/* HEADER */}
+      <div style={{ flex: "0 0 auto", marginBottom: "20px" }}>
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: "25px",
+            marginBottom: "15px",
           }}
         >
           <div>
-            <h2
-              style={{
-                margin: 0,
-                color: "#f8fafc",
-                fontSize: "1.8rem",
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-              }}
-            >
-              <span>Laporan Hari Ini</span>
+            <h2 style={{ margin: 0, color: "#f8fafc", fontSize: "1.5rem" }}>
+              Laporan Hari Ini
             </h2>
             <p
               style={{
-                margin: "5px 0 0 0",
+                margin: "2px 0 0 0",
                 color: "#94a3b8",
-                fontSize: "0.95rem",
+                fontSize: "0.85rem",
               }}
             >
               {new Date().toLocaleDateString("id-ID", {
@@ -265,110 +240,123 @@ export default function Laporan() {
               })}
             </p>
           </div>
-
           <button
             onClick={loadData}
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "8px",
-              padding: "10px 16px",
+              gap: "6px",
+              padding: "8px 12px",
               background: "transparent",
               color: "#f8fafc",
               border: "1px solid #475569",
-              borderRadius: "8px",
+              borderRadius: "6px",
               cursor: "pointer",
-              fontWeight: "600",
-              fontSize: "0.9rem",
-              transition: "all 0.2s",
+              transition: "0.2s",
+              fontSize: "0.85rem",
             }}
-            onMouseOver={(e) => (e.currentTarget.style.borderColor = "#fbbf24")}
-            onMouseOut={(e) => (e.currentTarget.style.borderColor = "#475569")}
           >
             <Icons.Refresh /> Refresh
           </button>
         </div>
 
-        {/* --- CARDS SECTION (KEMBALI KE WARNA CERAH) --- */}
-        <div style={{ display: "flex", gap: "25px", flexWrap: "wrap" }}>
-          {/* Biru Cerah */}
+        {/* STAT CARDS - GRID RAPAT (Gap diperkecil jadi 10px) */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(5, 1fr)",
+            gap: "10px",
+          }}
+        >
           <StatCard
             title="Total Transaksi"
             value={report.total_transaction}
-            gradient="linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
+            gradient="linear-gradient(135deg, #475569 0%, #334155 100%)"
             icon={<Icons.Receipt />}
           />
-
-          {/* Hijau Cerah */}
           <StatCard
-            title="Omset Penjualan"
-            value={`Rp ${report.total_omset.toLocaleString("id-ID")}`}
+            title="Total Omset Kotor"
+            value={`Rp ${report.gross_sales.toLocaleString("id-ID")}`}
+            subtext="Sebelum Diskon"
+            gradient="linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
+            icon={<Icons.Money />}
+          />
+          <StatCard
+            title="Total Diskon"
+            value={`- Rp ${report.total_discount.toLocaleString("id-ID")}`}
+            subtext="Potongan"
+            gradient="linear-gradient(135deg, #ec4899 0%, #db2777 100%)"
+            icon={<Icons.Discount />}
+          />
+          <StatCard
+            title="Total Omset Bersih"
+            value={`Rp ${report.net_sales.toLocaleString("id-ID")}`}
+            subtext="Uang Diterima"
             gradient="linear-gradient(135deg, #10b981 0%, #059669 100%)"
             icon={<Icons.Money />}
           />
-
-          {/* Oranye Cerah */}
           <StatCard
-            title="Keuntungan Bersih"
+            title="Total Laba"
             value={`Rp ${report.total_profit.toLocaleString("id-ID")}`}
-            subtext="*(Total Jual - Total Modal)"
+            subtext="Real Profit"
             gradient="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
             icon={<Icons.Trending />}
           />
         </div>
       </div>
 
-      {/* --- TABEL SECTION --- */}
+      {/* TABEL TRANSAKSI */}
       <div
         style={{
           flex: "1 1 auto",
           display: "flex",
           flexDirection: "column",
           minHeight: 0,
-          background: "#1e293b", // Container Dark Slate
-          borderRadius: "16px",
+          background: "#1e293b",
+          borderRadius: "12px",
           border: "1px solid #334155",
-          boxShadow: "0 4px 6px -1px rgba(0,0,0,0.2)",
           overflow: "hidden",
         }}
       >
-        <div
-          className="custom-scroll"
-          style={{ overflowY: "auto", flex: "1", position: "relative" }}
-        >
+        <div className="custom-scroll" style={{ overflowY: "auto", flex: "1" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
               <tr>
-                {["Jam", "Barang", "Harga", "Qty", "Subtotal", "Laba"].map(
-                  (h, i) => (
-                    <th
-                      key={i}
-                      style={{
-                        background: "#0f172a", // Header Table Darker
-                        textAlign:
-                          i === 3 ? "center" : i > 1 ? "right" : "left",
-                        padding: "18px 24px",
-                        fontSize: "0.8rem",
-                        color: "#cbd5e1",
-                        fontWeight: "700",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.5px",
-                        borderBottom: "2px solid #334155",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  )
-                )}
+                {/* Header padding diperkecil */}
+                {[
+                  "Jam",
+                  "Metode",
+                  "Detail Barang",
+                  "Omset Kotor",
+                  "Diskon",
+                  "Omset Bersih",
+                  "Laba",
+                ].map((h, i) => (
+                  <th
+                    key={i}
+                    style={{
+                      background: "#0f172a",
+                      textAlign: i > 2 ? "right" : "left",
+                      padding: "12px 16px",
+                      fontSize: "0.7rem",
+                      color: "#cbd5e1",
+                      fontWeight: "700",
+                      textTransform: "uppercase",
+                      borderBottom: "2px solid #334155",
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {transactions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
+                    colSpan={7}
                     style={{
-                      padding: "60px",
+                      padding: "40px",
                       textAlign: "center",
                       color: "#64748b",
                     }}
@@ -378,90 +366,117 @@ export default function Laporan() {
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
-                        gap: "10px",
+                        gap: "8px",
                       }}
                     >
                       <Icons.Empty />
-                      <span style={{ fontSize: "1rem" }}>
-                        Belum ada transaksi hari ini.
-                      </span>
+                      <span>Belum ada transaksi.</span>
                     </div>
                   </td>
                 </tr>
               ) : (
-                transactions.map((t, index) => (
-                  <tr
-                    key={index}
-                    className="laporan-row"
-                    style={{ borderBottom: "1px solid #334155" }}
-                  >
-                    <td
-                      style={{
-                        padding: "16px 24px",
-                        color: "#94a3b8",
-                        fontSize: "0.95rem",
-                      }}
+                transactions.map((t, index) => {
+                  const style = getMethodColor(t.payment_method || "TUNAI");
+                  return (
+                    <tr
+                      key={index}
+                      className="laporan-row"
+                      style={{ borderBottom: "1px solid #334155" }}
                     >
-                      {new Date(t.payment_date).toLocaleTimeString("id-ID", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </td>
-                    <td
-                      style={{
-                        padding: "16px 24px",
-                        fontWeight: "600",
-                        color: "#f8fafc",
-                        fontSize: "0.95rem",
-                      }}
-                    >
-                      {t.product_name || (
-                        <span style={{ color: "#ef4444", fontStyle: "italic" }}>
-                          (Produk Dihapus)
+                      <td
+                        style={{
+                          padding: "10px 16px",
+                          color: "#94a3b8",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {new Date(t.payment_date).toLocaleTimeString("id-ID", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td style={{ padding: "10px 16px" }}>
+                        <span
+                          style={{
+                            background: style.bg,
+                            color: style.text,
+                            padding: "3px 6px",
+                            borderRadius: "4px",
+                            fontSize: "0.65rem",
+                            fontWeight: "700",
+                          }}
+                        >
+                          {t.payment_method || "TUNAI"}
                         </span>
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        padding: "16px 24px",
-                        textAlign: "right",
-                        color: "#cbd5e1",
-                      }}
-                    >
-                      Rp {t.price.toLocaleString("id-ID")}
-                    </td>
-                    <td
-                      style={{
-                        padding: "16px 24px",
-                        textAlign: "center",
-                        color: "#f8fafc",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {t.qty}
-                    </td>
-                    <td
-                      style={{
-                        padding: "16px 24px",
-                        textAlign: "right",
-                        fontWeight: "700",
-                        color: "#fbbf24",
-                      }}
-                    >
-                      Rp {t.subtotal.toLocaleString("id-ID")}
-                    </td>
-                    <td
-                      style={{
-                        padding: "16px 24px",
-                        textAlign: "right",
-                        fontWeight: "700",
-                        color: "#10b981",
-                      }}
-                    >
-                      + Rp {t.profit.toLocaleString("id-ID")}
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px 16px",
+                          color: "#f8fafc",
+                          fontSize: "0.85rem",
+                          maxWidth: "200px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                          title={t.items_summary}
+                        >
+                          {t.items_summary}
+                        </div>
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px 16px",
+                          textAlign: "right",
+                          color: "#cbd5e1",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        Rp {t.gross_total.toLocaleString("id-ID")}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px 16px",
+                          textAlign: "right",
+                          color: "#f472b6",
+                          fontWeight: "bold",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {t.discount > 0
+                          ? `- Rp ${t.discount.toLocaleString("id-ID")}`
+                          : "-"}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px 16px",
+                          textAlign: "right",
+                          fontWeight: "700",
+                          color: "#fbbf24",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        Rp {t.net_total.toLocaleString("id-ID")}
+                      </td>
+                      <td
+                        style={{
+                          padding: "10px 16px",
+                          textAlign: "right",
+                          fontWeight: "700",
+                          color: t.profit < 0 ? "#ef4444" : "#10b981",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        {t.profit < 0 ? "-" : "+"} Rp{" "}
+                        {Math.abs(t.profit).toLocaleString("id-ID")}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

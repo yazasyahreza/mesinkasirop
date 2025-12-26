@@ -4,7 +4,7 @@ import { app } from "electron";
 
 // Setup Path Database
 const dbFolder = app.getPath("userData");
-export const dbPath = path.join(dbFolder, "toko-ayah-v3.db");
+export const dbPath = path.join(dbFolder, "toko-ayah-v5.db");
 
 // Koneksi Database
 export const db = new Database(dbPath, { verbose: console.log });
@@ -36,12 +36,16 @@ export function initDB() {
   `
   ).run();
 
+  // [UPDATE] Menambahkan kolom discount, final_amount, dan payment_method
   db.prepare(
     `
     CREATE TABLE IF NOT EXISTS transactions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       total_amount INTEGER DEFAULT 0,
+      discount INTEGER DEFAULT 0,       -- [BARU] Diskon
+      final_amount INTEGER DEFAULT 0,   -- [BARU] Total Setelah Diskon
       total_profit INTEGER DEFAULT 0,
+      payment_method TEXT DEFAULT 'TUNAI', -- [BARU] TUNAI, QRIS, DEBIT
       payment_date DATETIME 
     )
   `
@@ -63,13 +67,10 @@ export function initDB() {
   ).run();
 }
 
-// [BARU] FUNGSI PEMBERSIH OTOMATIS (Hapus Data Kemarin & Lama)
+// FUNGSI PEMBERSIH OTOMATIS (Hapus Data Kemarin & Lama)
 export function autoClearOldData() {
   try {
     const execute = db.transaction(() => {
-      // 1. Cari Transaksi yang BUKAN hari ini (< Hari Ini)
-      // Kita pakai date('now', 'localtime') agar sesuai jam komputer user
-
       // Hapus Detail Barang (Items) milik transaksi lampau
       db.prepare(
         `
@@ -157,7 +158,6 @@ export function updateProduct(id: number, p: any) {
   }
 }
 
-// [MODIFIKASI] HANYA BISA HAPUS JIKA TIDAK ADA DI TRANSAKSI
 export function deleteProduct(id: number) {
   try {
     // 1. Cek apakah barang ada di transaksi (yang tersisa hari ini)
@@ -168,10 +168,9 @@ export function deleteProduct(id: number) {
       .get(id) as any;
 
     if (check.count > 0) {
-      // JIKA ADA: Tolak penghapusan
       return {
         success: false,
-        reason: "LOCKED", // Kode khusus untuk frontend
+        reason: "LOCKED",
         msg: "Barang sedang digunakan dalam transaksi hari ini!",
       };
     }
@@ -185,18 +184,37 @@ export function deleteProduct(id: number) {
 }
 
 // --- KASIR ---
-export function createTransaction(items: any[], totalAmount: number) {
+// [UPDATE] Menerima discount & paymentMethod
+export function createTransaction(
+  items: any[],
+  totalAmount: number,
+  discount: number,
+  paymentMethod: string
+) {
   const executeTx = db.transaction(() => {
     let totalCost = 0;
     items.forEach((item) => {
       totalCost += item.cost_price * item.qty;
     });
-    const totalProfit = totalAmount - totalCost;
+
+    // [LOGIKA BARU] Hitung Final Amount & Profit Bersih
+    // Profit = (Total Jual - Diskon) - Total Modal
+    const finalAmount = totalAmount - discount;
+    const totalProfit = finalAmount - totalCost;
 
     const stmtHeader = db.prepare(
-      "INSERT INTO transactions (total_amount, total_profit, payment_date) VALUES (?, ?, ?)"
+      "INSERT INTO transactions (total_amount, discount, final_amount, total_profit, payment_method, payment_date) VALUES (?, ?, ?, ?, ?, ?)"
     );
-    const info = stmtHeader.run(totalAmount, totalProfit, getLocalTime());
+
+    // Masukkan data transaksi lengkap
+    const info = stmtHeader.run(
+      totalAmount,
+      discount,
+      finalAmount,
+      totalProfit,
+      paymentMethod,
+      getLocalTime()
+    );
     const txId = info.lastInsertRowid;
 
     const stmtDetail = db.prepare(
@@ -230,38 +248,62 @@ export function getTodayReport() {
     const stmt = db.prepare(`
       SELECT 
         COUNT(id) as total_transaction,
-        COALESCE(SUM(total_amount), 0) as total_omset,
-        COALESCE(SUM(total_profit), 0) as total_profit
+        COALESCE(SUM(total_amount), 0) as gross_sales,   -- Total Kotor
+        COALESCE(SUM(discount), 0) as total_discount,    -- Total Diskon
+        COALESCE(SUM(final_amount), 0) as net_sales,     -- Total Bersih
+        COALESCE(SUM(total_profit), 0) as total_profit   -- Laba Bersih
       FROM transactions 
       WHERE date(payment_date) = date('now', 'localtime')
     `);
-    return stmt.get();
+
+    const result = stmt.get();
+    return (
+      result || {
+        total_transaction: 0,
+        gross_sales: 0,
+        total_discount: 0,
+        net_sales: 0,
+        total_profit: 0,
+      }
+    );
   } catch (e) {
-    return { total_transaction: 0, total_omset: 0, total_profit: 0 };
+    return {
+      total_transaction: 0,
+      gross_sales: 0,
+      total_discount: 0,
+      net_sales: 0,
+      total_profit: 0,
+    };
   }
 }
 
 export function getTodayTransactions() {
   try {
+    // Query ini menggabungkan item dalam satu baris transaksi
     return db
       .prepare(
         `
       SELECT 
+        t.id,
         t.payment_date,
-        p.name as product_name,
-        ti.price_at_transaction as price,
-        ti.qty,
-        (ti.price_at_transaction * ti.qty) as subtotal,
-        ((ti.price_at_transaction - ti.cost_at_transaction) * ti.qty) as profit
-      FROM transaction_items ti
-      JOIN transactions t ON ti.transaction_id = t.id
+        t.payment_method,
+        t.total_amount as gross_total,
+        t.discount,
+        t.final_amount as net_total,
+        t.total_profit as profit,
+        -- Menggabungkan nama barang: "Oli (x2), Busi (x1)"
+        GROUP_CONCAT(p.name || ' (x' || ti.qty || ')', ', ') as items_summary
+      FROM transactions t
+      JOIN transaction_items ti ON t.id = ti.transaction_id
       LEFT JOIN products p ON ti.product_id = p.id
       WHERE date(t.payment_date) = date('now', 'localtime')
+      GROUP BY t.id
       ORDER BY t.payment_date DESC
     `
       )
       .all();
   } catch (e) {
+    console.error(e);
     return [];
   }
 }

@@ -10,8 +10,21 @@ const api = {
   deleteProduct: (id: number) => ipcRenderer.invoke("delete-product", id),
 
   // Transaksi
-  createTransaction: (items: any[], total: number) =>
-    ipcRenderer.invoke("create-transaction", items, total),
+  // [UPDATE] Menerima parameter discount dan paymentMethod
+  createTransaction: (
+    items: any[],
+    total: number,
+    discount: number,
+    paymentMethod: string
+  ) =>
+    ipcRenderer.invoke(
+      "create-transaction",
+      items,
+      total,
+      discount,
+      paymentMethod
+    ),
+
   confirmPayment: (data: any) => ipcRenderer.invoke("confirm-payment", data),
 
   // Laporan

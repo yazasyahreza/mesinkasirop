@@ -13,7 +13,7 @@ import {
   createTransaction,
   getTodayReport,
   getTodayTransactions,
-  autoClearOldData, // [BARU] Import fungsi ini
+  autoClearOldData,
   db,
   dbPath,
 } from "./database/db";
@@ -106,9 +106,13 @@ app.whenReady().then(() => {
     return deleteProduct(id);
   });
 
-  ipcMain.handle("create-transaction", async (_event, items, total) => {
-    return createTransaction(items, total);
-  });
+  // [UPDATE] Handler Transaction menerima parameter tambahan
+  ipcMain.handle(
+    "create-transaction",
+    async (_event, items, total, discount, paymentMethod) => {
+      return createTransaction(items, total, discount, paymentMethod);
+    }
+  );
 
   ipcMain.handle(
     "confirm-payment",

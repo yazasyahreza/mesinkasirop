@@ -14,13 +14,18 @@ export interface CartItem extends Product {
   qty: number | string;
 }
 
+// [BARU] Definisi Metode Pembayaran
+export type PaymentMethod = "TUNAI" | "QRIS" | "DEBIT";
+
 export interface Transaction {
+  id: number;
   payment_date: string;
-  product_name: string;
-  price: number;
-  qty: number;
-  subtotal: number;
-  profit: number;
+  payment_method: string;
+  items_summary: string; // [BARU] Contoh: "Oli (x2), Busi (x1)"
+  gross_total: number; // [BARU] Total Tagihan Kotor
+  discount: number;
+  net_total: number; // [BARU] Total Bayar Bersih
+  profit: number; // Laba Bersih Akhir
 }
 
 export interface TransactionDetail {
@@ -32,7 +37,9 @@ export interface TransactionDetail {
 
 export interface DailyReport {
   total_transaction: number;
-  total_omset: number;
+  gross_sales: number; // [BARU] Omset Kotor (Sebelum Diskon)
+  total_discount: number;
+  net_sales: number; // [UBAH NAMA] Biar jelas (Omset Bersih)
   total_profit: number;
 }
 
@@ -47,8 +54,18 @@ declare global {
       deleteProduct: (id: number) => Promise<any>;
 
       // Transaksi
-      createTransaction: (items: any[], total: number) => Promise<any>;
+      // [UPDATE] Menambahkan parameter discount & paymentMethod
+      createTransaction: (
+        items: any[],
+        total: number,
+        discount: number,
+        paymentMethod: string
+      ) => Promise<any>;
+
       fetchTransactions: () => Promise<Transaction[]>;
+      // Tambahan agar kompatibel dengan halaman Laporan yang menggunakan fetchTodayTransactions
+      fetchTodayTransactions: () => Promise<Transaction[]>;
+
       fetchTransactionDetails: (id: number) => Promise<TransactionDetail[]>;
       deleteTransaction: (id: number) => Promise<any>;
 
