@@ -8,24 +8,25 @@ export interface Product {
   stock: number;
   category?: string;
   item_number?: string;
+  created_at?: string; // [BARU] Tambahan untuk kolom Tanggal di Gudang
 }
 
 export interface CartItem extends Product {
   qty: number | string;
 }
 
-// [BARU] Definisi Metode Pembayaran
+// Definisi Metode Pembayaran
 export type PaymentMethod = "TUNAI" | "QRIS" | "DEBIT";
 
 export interface Transaction {
   id: number;
   payment_date: string;
   payment_method: string;
-  items_summary: string; // [BARU] Contoh: "Oli (x2), Busi (x1)"
-  gross_total: number; // [BARU] Total Tagihan Kotor
+  items_summary: string;
+  gross_total: number;
   discount: number;
-  net_total: number; // [BARU] Total Bayar Bersih
-  profit: number; // Laba Bersih Akhir
+  net_total: number;
+  profit: number;
 }
 
 export interface TransactionDetail {
@@ -37,10 +38,24 @@ export interface TransactionDetail {
 
 export interface DailyReport {
   total_transaction: number;
-  gross_sales: number; // [BARU] Omset Kotor (Sebelum Diskon)
+  gross_sales: number;
   total_discount: number;
-  net_sales: number; // [UBAH NAMA] Biar jelas (Omset Bersih)
+  net_sales: number;
   total_profit: number;
+}
+
+// [BARU] Interface untuk Laporan Mingguan & Bulanan
+export interface PeriodReport {
+  period_id: string;
+  label: string; // Contoh: "Januari 2025" atau "2025-12-20 s/d ..."
+  start_date?: string; // Khusus Mingguan
+  end_date?: string; // Khusus Mingguan
+  revenue: number;
+  expense: number;
+  profit: number;
+  tunai: number; // [BARU] Rincian Tunai
+  qris: number; // [BARU] Rincian QRIS
+  debit: number; // [BARU] Rincian Debit
 }
 
 // --- DEFINISI GLOBAL WINDOW.API (PENTING!) ---
@@ -49,12 +64,16 @@ declare global {
     api: {
       // Produk
       fetchProducts: () => Promise<Product[]>;
-      createProduct: (data: any) => Promise<any>;
-      updateProduct: (id: number, data: any) => Promise<any>;
+
+      // [UPDATE NAMA] Diubah jadi addProduct agar sesuai dengan Gudang.tsx
+      addProduct: (data: any) => Promise<any>;
+
+      // [UPDATE NAMA] Diubah jadi editProduct agar sesuai dengan Gudang.tsx
+      editProduct: (id: number, data: any) => Promise<any>;
+
       deleteProduct: (id: number) => Promise<any>;
 
       // Transaksi
-      // [UPDATE] Menambahkan parameter discount & paymentMethod
       createTransaction: (
         items: any[],
         total: number,
@@ -63,14 +82,19 @@ declare global {
       ) => Promise<any>;
 
       fetchTransactions: () => Promise<Transaction[]>;
-      // Tambahan agar kompatibel dengan halaman Laporan yang menggunakan fetchTodayTransactions
       fetchTodayTransactions: () => Promise<Transaction[]>;
-
       fetchTransactionDetails: (id: number) => Promise<TransactionDetail[]>;
       deleteTransaction: (id: number) => Promise<any>;
 
+      // Konfirmasi Pembayaran (Opsional, jika pakai dialog konfirmasi)
+      confirmPayment: (details: any) => Promise<boolean>;
+
       // Laporan
       fetchTodayReport: () => Promise<DailyReport>;
+
+      // [BARU] Tambahan untuk Laporan Mingguan & Bulanan
+      fetchWeeklyReport: () => Promise<PeriodReport[]>;
+      fetchMonthlyReport: () => Promise<PeriodReport[]>;
 
       // Backup Database
       backupDatabase: () => Promise<{

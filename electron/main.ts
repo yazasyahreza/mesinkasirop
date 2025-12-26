@@ -13,7 +13,8 @@ import {
   createTransaction,
   getTodayReport,
   getTodayTransactions,
-  autoClearOldData,
+  getWeeklyReport, // [BARU]
+  getMonthlyReport, // [BARU]
   db,
   dbPath,
 } from "./database/db";
@@ -74,9 +75,6 @@ app.on("activate", () => {
 app.whenReady().then(() => {
   // 1. Inisialisasi Database
   initDB();
-
-  // 2. [OTOMATIS] Hapus Data Transaksi Kemarin (Reset Harian)
-  autoClearOldData();
 
   // 3. Setup IPC Handlers
   ipcMain.handle("fetch-products", async () => {
@@ -202,6 +200,16 @@ app.whenReady().then(() => {
       );
       return { success: false, msg: e.message };
     }
+  });
+
+  // [BARU] Handler Laporan Mingguan
+  ipcMain.handle("fetch-weekly-report", async () => {
+    return getWeeklyReport();
+  });
+
+  // [BARU] Handler Laporan Bulanan
+  ipcMain.handle("fetch-monthly-report", async () => {
+    return getMonthlyReport();
   });
 
   createWindow();

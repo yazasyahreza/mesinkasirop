@@ -1,36 +1,35 @@
 import { useState, useEffect } from "react";
-import "./App.css";
 import Gudang from "./pages/Gudang";
 import Kasir from "./pages/Kasir";
 import Laporan from "./pages/Laporan";
 import { Product, CartItem } from "./types";
 
-// --- KOLEKSI IKON ---
-const Icons = {
-  Settings: () => (
-    <svg width="28" height="28" fill="currentColor" viewBox="0 0 24 24">
-      <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" />
-      <path
-        fillRule="evenodd"
-        d="M1.323 11.447C2.811 6.976 7.028 3.75 12.001 3.75c4.97 0 9.185 3.223 10.675 7.69.12.362.12.752 0 1.113-1.487 4.471-5.705 7.697-10.677 7.697-4.97 0-9.186-3.223-10.675-7.69a1.762 1.762 0 010-1.113zM17.25 12a5.25 5.25 0 11-10.5 0 5.25 5.25 0 0110.5 0z"
-        clipRule="evenodd"
-      />
-    </svg>
-  ),
-  Chart: () => (
+// --- ICONS NAVBAR ---
+const NavIcons = {
+  Home: () => (
     <svg
-      width="18"
-      height="18"
+      width="20"
+      height="20"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
       viewBox="0 0 24 24"
     >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z"
-      />
+      <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 0 0 1 1h3m10-11l2 2m-2-2v10a1 1 0 0 1-1 1h-3m-6 0a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1m-6 0h6" />
+    </svg>
+  ),
+  Box: () => (
+    <svg
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+      <line x1="12" y1="22.08" x2="12" y2="12" />
     </svg>
   ),
   Monitor: () => (
@@ -40,20 +39,30 @@ const Icons = {
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
       viewBox="0 0 24 24"
     >
-      {/* Layar Atas */}
-      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-      <line x1="8" y1="21" x2="16" y2="21" />
-      <line x1="12" y1="17" x2="12" y2="21" />
-      {/* Detail Garis Layar (Seolah-olah software kasir) */}
-      <path d="M6 8h12" opacity="0.5" />
-      <path d="M6 12h8" opacity="0.5" />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"
+      />
     </svg>
   ),
-  Box: () => (
+  Chart: () => (
+    <svg
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M18 20V10" />
+      <path d="M12 20V4" />
+      <path d="M6 20v-6" />
+    </svg>
+  ),
+  Calendar: () => (
     <svg
       width="18"
       height="18"
@@ -62,11 +71,10 @@ const Icons = {
       strokeWidth="2"
       viewBox="0 0 24 24"
     >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5m8.25 3v6.75m0 0l-3-3m3 3l3-3M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
-      />
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
     </svg>
   ),
   Upload: () => (
@@ -78,11 +86,9 @@ const Icons = {
       strokeWidth="2"
       viewBox="0 0 24 24"
     >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
-      />
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
     </svg>
   ),
   Download: () => (
@@ -94,225 +100,283 @@ const Icons = {
       strokeWidth="2"
       viewBox="0 0 24 24"
     >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M12 12v8.25m0 0l-4.5-4.5m4.5 4.5l4.5-4.5m-4.5-4.5V3"
-      />
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   ),
 };
 
 function App() {
-  const TABS = ["laporan", "kasir", "gudang"] as const;
-  const [activeTab, setActiveTab] = useState<"laporan" | "kasir" | "gudang">(
-    "laporan"
-  );
+  const [page, setPage] = useState<"gudang" | "kasir" | "laporan">("kasir");
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [pay, setPay] = useState("");
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
 
-  const loadProducts = async () => {
-    // @ts-ignore
-    const data = await window.api.fetchProducts();
-    setProducts(data);
+  const refreshProducts = async () => {
+    try {
+      // @ts-ignore
+      const data = await window.api.fetchProducts();
+      if (data) setProducts(data);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    refreshProducts();
+  }, [lastUpdate]);
 
+  // --- [BARU] LOGIKA SHORTCUT NAVIGASI (CTRL + TAB) ---
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.key === "Tab") {
-        e.preventDefault();
-        setActiveTab((prev) => {
-          const currentIndex = TABS.indexOf(prev);
-          const nextIndex = (currentIndex + 1) % TABS.length;
-          return TABS[nextIndex];
+      // Cek apakah tombol yang ditekan adalah Ctrl (atau Command di Mac) + Tab
+      if ((e.ctrlKey || e.metaKey) && e.key === "Tab") {
+        e.preventDefault(); // Mencegah pindah fokus browser default
+
+        // Rotasi Halaman: Kasir -> Gudang -> Laporan -> Kasir
+        setPage((prevPage) => {
+          if (prevPage === "kasir") return "gudang";
+          if (prevPage === "gudang") return "laporan";
+          return "kasir";
         });
       }
     };
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   const handleBackup = async () => {
-    /* @ts-ignore */ await window.api.backupDatabase();
-  };
-  const handleRestore = async () => {
-    /* @ts-ignore */ await window.api.restoreDatabase();
+    // @ts-ignore
+    await window.api.backupDatabase();
   };
 
-  const getNavStyle = (tabName: string) => {
-    const isActive = activeTab === tabName;
-    return {
-      padding: "10px 18px",
-      borderRadius: "6px",
-      border: "none",
-      cursor: "pointer",
-      fontWeight: isActive ? "700" : "500",
-      fontSize: "0.9rem",
-      transition: "all 0.3s ease",
-      background: isActive ? "rgba(255,255,255,0.1)" : "transparent",
-      color: isActive ? "#fbbf24" : "#94a3b8",
-      display: "flex",
-      alignItems: "center",
-      gap: "8px",
-      borderBottom: isActive ? "2px solid #fbbf24" : "2px solid transparent",
-    };
+  const handleRestore = async () => {
+    // @ts-ignore
+    await window.api.restoreDatabase();
   };
+
+  const currentDate = new Date().toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
-    // UBAH BACKGROUND APP JADI GELAP AGAR MENYATU
     <div
-      className="app-container"
       style={{
-        background: "#0f172a",
-        minHeight: "100vh",
+        height: "100vh",
+        width: "100vw",
         display: "flex",
         flexDirection: "column",
+        background: "#0f172a",
+        color: "#f8fafc",
+        fontFamily: "Inter, sans-serif",
+        overflow: "hidden",
+        margin: 0,
+        padding: 0,
       }}
     >
-      {/* HEADER DARK NAVY */}
-      <header
+      {/* NAVBAR */}
+      <nav
         style={{
+          height: "65px",
+          flexShrink: 0,
+          width: "100%",
           background: "#0f172a",
-          color: "white",
           borderBottom: "1px solid #1e293b",
           display: "flex",
           alignItems: "center",
+          padding: "0 25px",
           justifyContent: "space-between",
-          padding: "0 24px",
-          height: "70px",
-          flexShrink: 0,
+          boxSizing: "border-box",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            gap: "30px",
-            alignItems: "center",
-            height: "100%",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            <div style={{ color: "#fbbf24" }}>
-              <Icons.Settings />
-            </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <h1
+        <div style={{ display: "flex", alignItems: "center", gap: "40px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div
+              style={{
+                width: "32px",
+                height: "32px",
+                borderRadius: "8px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                border: "2px solid #fbbf24",
+                color: "#fbbf24",
+                fontWeight: "bold",
+              }}
+            >
+              <div
                 style={{
+                  width: "12px",
+                  height: "12px",
+                  background: "#fbbf24",
+                  borderRadius: "50%",
+                }}
+              ></div>
+            </div>
+            <div>
+              <div
+                style={{
+                  fontWeight: "900",
                   fontSize: "1.1rem",
-                  margin: 0,
-                  fontWeight: "800",
-                  letterSpacing: "0.5px",
-                  color: "#f8fafc",
-                  lineHeight: "1.2",
+                  letterSpacing: "-0.5px",
+                  lineHeight: "1",
                 }}
               >
                 OGENG PRESS
-              </h1>
-              <span
+              </div>
+              <div
                 style={{
-                  fontSize: "0.7rem",
-                  color: "#94a3b8",
-                  fontWeight: "400",
-                  letterSpacing: "0.5px",
+                  fontSize: "0.65rem",
+                  color: "#64748b",
+                  letterSpacing: "1px",
+                  fontWeight: "500",
                 }}
               >
                 MANAGEMENT SYSTEM
-              </span>
+              </div>
             </div>
           </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            {[
+              { id: "laporan", label: "Laporan", icon: <NavIcons.Chart /> },
+              { id: "kasir", label: "Kasir", icon: <NavIcons.Monitor /> },
+              { id: "gudang", label: "Gudang", icon: <NavIcons.Box /> },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setPage(item.id as any)}
+                style={{
+                  background:
+                    page === item.id
+                      ? "rgba(251, 191, 36, 0.1)"
+                      : "transparent",
+                  color: page === item.id ? "#fbbf24" : "#94a3b8",
+                  border:
+                    page === item.id
+                      ? "1px solid rgba(251, 191, 36, 0.4)"
+                      : "1px solid transparent",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  fontWeight: "600",
+                  fontSize: "0.9rem",
+                  transition: "all 0.2s",
+                }}
+              >
+                {item.icon} {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
           <div
-            style={{ height: "30px", width: "1px", background: "#334155" }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              color: "#cbd5e1",
+              fontSize: "0.9rem",
+              fontWeight: "500",
+              background: "#1e293b",
+              padding: "8px 14px",
+              borderRadius: "8px",
+              border: "1px solid #334155",
+            }}
+          >
+            <span style={{ color: "#fbbf24", display: "flex" }}>
+              <NavIcons.Calendar />
+            </span>{" "}
+            {currentDate}
+          </div>
+          <div
+            style={{ width: "1px", height: "24px", background: "#334155" }}
           ></div>
-          <nav
-            style={{
-              display: "flex",
-              gap: "4px",
-              height: "100%",
-              alignItems: "center",
-            }}
-          >
+          <div style={{ display: "flex", gap: "10px" }}>
             <button
-              onClick={() => setActiveTab("laporan")}
-              style={getNavStyle("laporan")}
+              onClick={handleRestore}
+              style={{
+                background: "transparent",
+                color: "#fbbf24",
+                border: "1px solid #fbbf24",
+                padding: "8px 14px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "0.85rem",
+                fontWeight: "600",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
             >
-              <Icons.Chart /> Laporan
+              <NavIcons.Upload /> Restore
             </button>
             <button
-              onClick={() => setActiveTab("kasir")}
-              style={getNavStyle("kasir")}
+              onClick={handleBackup}
+              style={{
+                background: "#fbbf24",
+                color: "#0f172a",
+                border: "none",
+                padding: "8px 14px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "0.85rem",
+                fontWeight: "700",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                boxShadow: "0 4px 6px -1px rgba(251, 191, 36, 0.3)",
+              }}
             >
-              <Icons.Monitor /> Kasir
+              <NavIcons.Download /> Backup
             </button>
-            <button
-              onClick={() => setActiveTab("gudang")}
-              style={getNavStyle("gudang")}
-            >
-              <Icons.Box /> Gudang
-            </button>
-          </nav>
+          </div>
         </div>
+      </nav>
 
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          {/* TOMBOL RESET DIHAPUS DARI SINI */}
-          <button
-            onClick={handleRestore}
-            style={{
-              background: "transparent",
-              color: "#fbbf24",
-              border: "1px solid #fbbf24",
-              padding: "8px 16px",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontWeight: "600",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "0.85rem",
-            }}
-          >
-            <Icons.Upload /> Restore
-          </button>
-          <button
-            onClick={handleBackup}
-            style={{
-              background: "#fbbf24",
-              color: "#0f172a",
-              border: "none",
-              padding: "8px 16px",
-              borderRadius: "6px",
-              cursor: "pointer",
-              fontWeight: "700",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px",
-              fontSize: "0.85rem",
-              boxShadow: "0 2px 4px rgba(251, 191, 36, 0.3)",
-            }}
-          >
-            <Icons.Download /> Backup
-          </button>
-        </div>
-      </header>
-
-      {/* MAIN CONTENT */}
-      <div style={{ flex: 1, overflow: "hidden", background: "#0f172a" }}>
-        {activeTab === "laporan" && <Laporan />}
-        {activeTab === "kasir" && (
-          <Kasir
-            products={products}
-            onSuccess={loadProducts}
-            cart={cart}
-            setCart={setCart}
-            pay={pay}
-            setPay={setPay}
-          />
+      {/* CONTENT WRAPPER */}
+      <div
+        style={{
+          flex: 1,
+          width: "100%",
+          overflow: "hidden",
+          position: "relative",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {page === "gudang" && (
+          <div style={{ flex: 1, overflow: "hidden" }}>
+            <Gudang onUpdate={() => setLastUpdate(Date.now())} />
+          </div>
         )}
-        {activeTab === "gudang" && <Gudang onUpdate={loadProducts} />}
+
+        {page === "kasir" && (
+          <div style={{ flex: 1, overflow: "hidden" }}>
+            <Kasir
+              products={products}
+              onSuccess={() => setLastUpdate(Date.now())}
+              cart={cart}
+              setCart={setCart}
+              pay={pay}
+              setPay={setPay}
+            />
+          </div>
+        )}
+
+        {page === "laporan" && (
+          <div style={{ flex: 1, overflow: "hidden" }}>
+            <Laporan />
+          </div>
+        )}
       </div>
     </div>
   );

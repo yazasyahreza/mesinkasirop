@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Product, CartItem, PaymentMethod } from "../types";
 
-// --- IKON ---
+// --- ICONS ---
 const Icons = {
   Alert: () => (
     <svg
@@ -99,13 +99,11 @@ export default function Kasir({
   const [scan, setScan] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("TUNAI");
   const [discountInput, setDiscountInput] = useState("");
-
   const [toast, setToast] = useState<{
     show: boolean;
     msg: string;
     type: "success" | "error";
   }>({ show: false, msg: "", type: "success" });
-
   const scanRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -113,7 +111,6 @@ export default function Kasir({
   }, []);
 
   const formatRp = (num: number) => "Rp " + num.toLocaleString("id-ID");
-
   const showNotification = (msg: string, type: "success" | "error") => {
     setToast({ show: true, msg, type });
     setTimeout(() => {
@@ -124,15 +121,12 @@ export default function Kasir({
   const handleAddItem = (barcode: string) => {
     const p = products.find((i) => i.barcode === barcode);
     if (!p) return false;
-
     const exist = cart.find((c) => c.id === p.id);
     const currentQty = exist ? Number(exist.qty) : 0;
-
     if (currentQty + 1 > p.stock) {
       showNotification(`Stok habis! Sisa: ${p.stock}`, "error");
       return true;
     }
-
     if (exist) {
       setCart(
         cart.map((c) => (c.id === p.id ? { ...c, qty: Number(c.qty) + 1 } : c))
@@ -192,43 +186,32 @@ export default function Kasir({
   };
 
   const subTotal = cart.reduce((a, b) => a + b.price * Number(b.qty), 0);
-
   let discountValue = 0;
   if (discountInput.includes("%")) {
     const percent = parseFloat(discountInput.replace("%", ""));
-    if (!isNaN(percent)) {
-      discountValue = (subTotal * percent) / 100;
-    }
+    if (!isNaN(percent)) discountValue = (subTotal * percent) / 100;
   } else {
     discountValue = parseFloat(discountInput.replace(/\D/g, "")) || 0;
   }
-
   if (discountValue > subTotal) discountValue = subTotal;
-
   const grandTotal = subTotal - discountValue;
-
   const moneyReceived =
     paymentMethod === "TUNAI" ? Number(pay.replace(/\D/g, "")) : grandTotal;
-
   const kembalian = moneyReceived - grandTotal;
 
   const handleCheckout = async () => {
     const cleanCart = cart.map((c) => ({ ...c, qty: Number(c.qty) || 1 }));
-
     if (paymentMethod === "TUNAI" && moneyReceived < grandTotal) {
       showNotification("Uang pembayaran kurang!", "error");
       return;
     }
-
     // @ts-ignore
     const isConfirmed = await window.api.confirmPayment({
       total: formatRp(grandTotal),
       bayar: formatRp(moneyReceived),
       kembalian: formatRp(kembalian),
     });
-
     if (!isConfirmed) return;
-
     // @ts-ignore
     const res = await window.api.createTransaction(
       cleanCart,
@@ -236,7 +219,6 @@ export default function Kasir({
       discountValue,
       paymentMethod
     );
-
     if (res.success) {
       showNotification("Transaksi Berhasil!", "success");
       setCart([]);
@@ -260,26 +242,26 @@ export default function Kasir({
   }, [cart, pay, discountInput, paymentMethod]);
 
   return (
+    // [FIX UTAMA] Menambahkan display: "grid" secara eksplisit agar kolom terbagi
     <div
       className="main-grid"
       style={{
+        display: "grid",
         gridTemplateColumns: "1fr 380px",
         background: "#0f172a",
         height: "100%",
+        width: "100%",
+        overflow: "hidden",
       }}
     >
-      {/* CSS: Custom Scrollbar & Styles */}
       <style>{`
-        /* Custom Scrollbar */
         .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
         .custom-scroll::-webkit-scrollbar-track { background: transparent; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; border: 2px solid #1e293b; }
         .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
-
         .kasir-row:hover { background-color: #334155 !important; transition: background-color 0.2s ease; }
         .empty-row:hover { background-color: transparent !important; cursor: default; }
         .kasir-row:hover input[type="number"] { background-color: #1e293b !important; border-color: #64748b !important; }
-        
         .pay-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
         .pay-btn:hover { background: #334155; }
         .pay-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
@@ -350,8 +332,6 @@ export default function Kasir({
         >
           🛒 Keranjang Belanja
         </h3>
-
-        {/* Container Tabel dengan Custom Scroll */}
         <div
           style={{
             flex: 1,
@@ -484,7 +464,6 @@ export default function Kasir({
       </div>
 
       {/* KANAN: PANEL PEMBAYARAN */}
-      {/* Tambahkan class custom-scroll di sini juga jika layarnya kecil dan butuh scroll */}
       <div
         className="sidebar custom-scroll"
         style={{
@@ -496,7 +475,6 @@ export default function Kasir({
           overflowY: "auto",
         }}
       >
-        {/* SCAN BARCODE */}
         <div
           style={{
             background: "#0f172a",
@@ -540,8 +518,6 @@ export default function Kasir({
             />
           </form>
         </div>
-
-        {/* RINCIAN HARGA */}
         <div
           style={{
             background: "#0f172a",
@@ -619,8 +595,6 @@ export default function Kasir({
             {formatRp(grandTotal)}
           </div>
         </div>
-
-        {/* METODE PEMBAYARAN */}
         <div style={{ marginBottom: "20px" }}>
           <label
             style={{
@@ -668,8 +642,6 @@ export default function Kasir({
             ))}
           </div>
         </div>
-
-        {/* INPUT UANG */}
         {paymentMethod === "TUNAI" && (
           <div style={{ marginBottom: "20px" }}>
             <label
@@ -702,7 +674,6 @@ export default function Kasir({
             />
           </div>
         )}
-
         <div
           style={{
             display: "flex",
@@ -728,7 +699,6 @@ export default function Kasir({
             {formatRp(kembalian < 0 ? 0 : kembalian)}
           </strong>
         </div>
-
         <button
           onClick={handleCheckout}
           disabled={!cart.length}
@@ -749,7 +719,7 @@ export default function Kasir({
             marginTop: "auto",
           }}
         >
-          BAYAR
+          PROSES BAYAR
         </button>
       </div>
     </div>

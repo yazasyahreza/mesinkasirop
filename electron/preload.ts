@@ -31,6 +31,9 @@ const api = {
   fetchTodayReport: () => ipcRenderer.invoke("fetch-today-report"),
   fetchTodayTransactions: () => ipcRenderer.invoke("fetch-today-transactions"),
 
+  fetchWeeklyReport: () => ipcRenderer.invoke("fetch-weekly-report"),
+  fetchMonthlyReport: () => ipcRenderer.invoke("fetch-monthly-report"),
+
   // System
   backupDatabase: () => ipcRenderer.invoke("backup-database"),
   restoreDatabase: () => ipcRenderer.invoke("restore-database"),

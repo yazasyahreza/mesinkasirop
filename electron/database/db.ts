@@ -4,7 +4,7 @@ import { app } from "electron";
 
 // Setup Path Database
 const dbFolder = app.getPath("userData");
-export const dbPath = path.join(dbFolder, "toko-ayah-v5.db");
+export const dbPath = path.join(dbFolder, "toko-ayah-v7.db");
 
 // Koneksi Database
 export const db = new Database(dbPath, { verbose: console.log });
@@ -65,47 +65,6 @@ export function initDB() {
     )
   `
   ).run();
-}
-
-// FUNGSI PEMBERSIH OTOMATIS (Hapus Data Kemarin & Lama)
-export function autoClearOldData() {
-  try {
-    const execute = db.transaction(() => {
-      // Hapus Detail Barang (Items) milik transaksi lampau
-      db.prepare(
-        `
-        DELETE FROM transaction_items 
-        WHERE transaction_id IN (
-          SELECT id FROM transactions 
-          WHERE date(payment_date) < date('now', 'localtime')
-        )
-      `
-      ).run();
-
-      // Hapus Header Transaksi lampau
-      const info = db
-        .prepare(
-          `
-        DELETE FROM transactions 
-        WHERE date(payment_date) < date('now', 'localtime')
-      `
-        )
-        .run();
-
-      return info.changes;
-    });
-
-    const deletedCount = execute();
-    if (deletedCount > 0) {
-      console.log(
-        `[AUTO-CLEAN] Berhasil menghapus ${deletedCount} transaksi lama.`
-      );
-    }
-    return { success: true };
-  } catch (e: any) {
-    console.error("[AUTO-CLEAN ERROR]", e);
-    return { success: false, error: e.message };
-  }
 }
 
 // --- GUDANG ---
@@ -304,6 +263,86 @@ export function getTodayTransactions() {
       .all();
   } catch (e) {
     console.error(e);
+    return [];
+  }
+}
+
+// --- LAPORAN MINGGUAN & BULANAN ---
+
+// --- LAPORAN MINGGUAN ---
+export function getWeeklyReport() {
+  try {
+    return db
+      .prepare(
+        `
+      SELECT 
+        strftime('%Y-%W', payment_date) as period_id,
+        date(payment_date, '-6 days', 'weekday 1') as start_date,
+        date(payment_date, '-6 days', 'weekday 1', '+6 days') as end_date,
+        
+        -- Total Semua
+        SUM(final_amount) as revenue,
+        
+        -- Rincian Metode Pembayaran
+        SUM(CASE WHEN payment_method = 'TUNAI' THEN final_amount ELSE 0 END) as tunai,
+        SUM(CASE WHEN payment_method = 'QRIS' THEN final_amount ELSE 0 END) as qris,
+        SUM(CASE WHEN payment_method = 'DEBIT' THEN final_amount ELSE 0 END) as debit,
+
+        SUM(final_amount - total_profit) as expense,
+        SUM(total_profit) as profit
+      FROM transactions
+      GROUP BY period_id
+      ORDER BY period_id DESC
+      LIMIT 12
+    `
+      )
+      .all();
+  } catch (e) {
+    return [];
+  }
+}
+
+// --- LAPORAN BULANAN ---
+export function getMonthlyReport() {
+  try {
+    return db
+      .prepare(
+        `
+      SELECT 
+        strftime('%Y-%m', payment_date) as period_id,
+        CASE strftime('%m', payment_date)
+          WHEN '01' THEN 'Januari ' || strftime('%Y', payment_date)
+          WHEN '02' THEN 'Februari ' || strftime('%Y', payment_date)
+          WHEN '03' THEN 'Maret ' || strftime('%Y', payment_date)
+          WHEN '04' THEN 'April ' || strftime('%Y', payment_date)
+          WHEN '05' THEN 'Mei ' || strftime('%Y', payment_date)
+          WHEN '06' THEN 'Juni ' || strftime('%Y', payment_date)
+          WHEN '07' THEN 'Juli ' || strftime('%Y', payment_date)
+          WHEN '08' THEN 'Agustus ' || strftime('%Y', payment_date)
+          WHEN '09' THEN 'September ' || strftime('%Y', payment_date)
+          WHEN '10' THEN 'Oktober ' || strftime('%Y', payment_date)
+          WHEN '11' THEN 'November ' || strftime('%Y', payment_date)
+          WHEN '12' THEN 'Desember ' || strftime('%Y', payment_date)
+        END as label,
+        
+        -- Total Semua
+        SUM(final_amount) as revenue,
+
+        -- Rincian Metode Pembayaran
+        SUM(CASE WHEN payment_method = 'TUNAI' THEN final_amount ELSE 0 END) as tunai,
+        SUM(CASE WHEN payment_method = 'QRIS' THEN final_amount ELSE 0 END) as qris,
+        SUM(CASE WHEN payment_method = 'DEBIT' THEN final_amount ELSE 0 END) as debit,
+
+        SUM(final_amount - total_profit) as expense,
+        SUM(total_profit) as profit
+      FROM transactions
+      GROUP BY period_id
+      ORDER BY period_id DESC
+      LIMIT 12
+    `
+      )
+      .all();
+  } catch (e) {
     return [];
   }
 }

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Product } from "../types";
 
-// --- IKON SVG CLEAN (UPDATED) ---
+// --- IKON SVG CLEAN ---
 const Icons = {
   Edit: () => (
     <svg
@@ -82,7 +82,6 @@ const Icons = {
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   ),
-  // [BARU] Ikon Segitiga Peringatan (Lebih Jelas untuk Error)
   Alert: () => (
     <svg
       width="24"
@@ -139,7 +138,8 @@ export default function Gudang({ onUpdate }: GudangProps) {
   const barcodeRef = useRef<HTMLInputElement>(null);
 
   const loadProducts = async () => {
-    /* @ts-ignore */ const data = await window.api.fetchProducts();
+    // @ts-ignore
+    const data = await window.api.fetchProducts();
     setProducts(data);
   };
   useEffect(() => {
@@ -156,6 +156,17 @@ export default function Gudang({ onUpdate }: GudangProps) {
     }, 3000);
   };
 
+  // [BARU] Helper Format Tanggal Indonesia
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short", // "Des"
+      year: "numeric", // "2025"
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.price) return;
@@ -165,10 +176,13 @@ export default function Gudang({ onUpdate }: GudangProps) {
       price: Number(String(form.price).replace(/\D/g, "")) || 0,
       stock: Number(String(form.stock).replace(/\D/g, "")) || 0,
     };
+
+    // [UPDATE] Menggunakan addProduct & editProduct sesuai types.ts
     // @ts-ignore
     const res = editId
-      ? await window.api.updateProduct(editId, data)
-      : await window.api.createProduct(data);
+      ? await window.api.editProduct(editId, data)
+      : await window.api.addProduct(data);
+
     if (res.success) {
       setEditId(null);
       setForm({
@@ -190,6 +204,7 @@ export default function Gudang({ onUpdate }: GudangProps) {
   };
 
   const handleDelete = async (id: number) => {
+    if (!confirm("Hapus barang ini?")) return;
     // @ts-ignore
     const res = await window.api.deleteProduct(id);
     if (res.success) {
@@ -221,10 +236,11 @@ export default function Gudang({ onUpdate }: GudangProps) {
   );
   const totalItems = activeProducts.length;
   const totalAsset = activeProducts.reduce(
-    (sum, p) => sum + p.price * p.stock,
+    (sum, p) => sum + p.cost_price * p.stock,
     0
-  );
+  ); // Asset dihitung dari Modal * Stok
   const lowStockCount = activeProducts.filter((p) => p.stock < 5).length;
+
   const filtered = products.filter((p) => {
     const term = search.toLowerCase();
     return (
@@ -265,32 +281,15 @@ export default function Gudang({ onUpdate }: GudangProps) {
     >
       <style>
         {`
-          /* Custom Scrollbar */
-          .custom-scroll::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-          }
-          .custom-scroll::-webkit-scrollbar-track {
-            background: transparent; 
-          }
-          .custom-scroll::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 4px;
-            border: 2px solid #1e293b;
-          }
-          .custom-scroll::-webkit-scrollbar-thumb:hover {
-            background: #64748b;
-          }
-
-          /* Hover Row Effect */
-          .gudang-row:hover {
-            background-color: rgba(255, 255, 255, 0.05) !important;
-            transition: background-color 0.2s ease;
-          }
+          .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+          .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+          .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; border: 2px solid #1e293b; }
+          .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
+          .gudang-row:hover { background-color: rgba(255, 255, 255, 0.05) !important; transition: background-color 0.2s ease; }
         `}
       </style>
 
-      {/* TOAST NOTIFIKASI */}
+      {/* TOAST */}
       <div
         style={{
           position: "fixed",
@@ -310,7 +309,7 @@ export default function Gudang({ onUpdate }: GudangProps) {
           display: "flex",
           alignItems: "center",
           gap: "12px",
-          transition: "all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)",
+          transition: "all 0.4s",
           opacity: toast.show ? 1 : 0,
           transform: toast.show ? "translateX(0)" : "translateX(100%)",
         }}
@@ -326,7 +325,6 @@ export default function Gudang({ onUpdate }: GudangProps) {
               fontSize: "0.75rem",
               color: "#94a3b8",
               textTransform: "uppercase",
-              letterSpacing: "0.5px",
             }}
           >
             {toast.type === "success" ? "BERHASIL" : "GAGAL"}
@@ -614,7 +612,7 @@ export default function Gudang({ onUpdate }: GudangProps) {
           </div>
         </div>
 
-        {/* TABEL - WRAPPER BORDER */}
+        {/* TABEL */}
         <div
           style={{
             flex: 1,
@@ -631,7 +629,9 @@ export default function Gudang({ onUpdate }: GudangProps) {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
                 <tr>
+                  {/* [UPDATE] Menambahkan TANGGAL di Header */}
                   {[
+                    "TANGGAL",
                     "NAMA / KODE",
                     "KATEGORI",
                     "MODAL",
@@ -644,7 +644,7 @@ export default function Gudang({ onUpdate }: GudangProps) {
                       style={{
                         background: "#0f172a",
                         padding: "16px 20px",
-                        textAlign: i > 3 ? "center" : "left",
+                        textAlign: i > 4 ? "center" : "left",
                         fontSize: "0.75rem",
                         color: "#cbd5e1",
                         fontWeight: "700",
@@ -671,6 +671,18 @@ export default function Gudang({ onUpdate }: GudangProps) {
                           : "transparent",
                     }}
                   >
+                    {/* [UPDATE] Kolom Tanggal */}
+                    <td
+                      style={{
+                        padding: "14px 20px",
+                        color: "#94a3b8",
+                        fontSize: "0.85rem",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {formatDate(p.created_at)}
+                    </td>
+
                     <td style={{ padding: "14px 20px" }}>
                       <div style={{ fontWeight: "600", color: "#f8fafc" }}>
                         {p.name}
