@@ -1,22 +1,8 @@
 import { useState, useEffect } from "react";
-import { DailyReport, Transaction } from "../types";
+import { DailyReport, Transaction, TopProduct } from "../types";
 
 // --- ICONS ---
 const Icons = {
-  Refresh: () => (
-    <svg
-      width="14"
-      height="14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.5"
-      viewBox="0 0 24 24"
-    >
-      <path d="M23 4v6h-6" />
-      <path d="M1 20v-6h6" />
-      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-    </svg>
-  ),
   Receipt: () => (
     <svg
       width="40"
@@ -86,73 +72,105 @@ const Icons = {
       <line x1="12" y1="22.08" x2="12" y2="12" />
     </svg>
   ),
-  Calendar: () => (
+  Cloud: () => (
+    <svg
+      width="14"
+      height="14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      viewBox="0 0 24 24"
+    >
+      <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path>
+    </svg>
+  ),
+  Check: () => (
     <svg
       width="24"
       height="24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="2"
       viewBox="0 0 24 24"
     >
-      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-      <line x1="16" y1="2" x2="16" y2="6" />
-      <line x1="8" y1="2" x2="8" y2="6" />
-      <line x1="3" y1="10" x2="21" y2="10" />
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+      <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   ),
-  Wallet: () => (
+  Alert: () => (
+    <svg
+      width="24"
+      height="24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      viewBox="0 0 24 24"
+    >
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  ),
+  Loading: () => (
     <svg
       width="14"
       height="14"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.5"
       viewBox="0 0 24 24"
+      className="animate-spin"
     >
-      <path d="M20 7h-7" />
-      <path d="M14 11h6" />
-      <path d="M2 17v-2a2 2 0 0 1 2-2h16v-2a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v2" />
-      <path d="M2 17v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2" />
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
     </svg>
   ),
-  Qr: () => (
+  Expense: () => (
     <svg
-      width="14"
-      height="14"
+      width="20"
+      height="20"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
       viewBox="0 0 24 24"
     >
-      <path d="M3 7V5a2 2 0 0 1 2-2h2" />
-      <path d="M17 3h2a2 2 0 0 1 2 2v2" />
-      <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-      <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
-      <rect x="7" y="7" width="3" height="3" />
-      <rect x="14" y="7" width="3" height="3" />
-      <rect x="7" y="14" width="3" height="3" />
+      <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
     </svg>
   ),
-  Card: () => (
+  Trophy: () => (
     <svg
-      width="14"
-      height="14"
+      width="20"
+      height="20"
       fill="none"
       stroke="currentColor"
       strokeWidth="2"
       viewBox="0 0 24 24"
     >
-      <rect x="2" y="5" width="20" height="14" rx="2" />
-      <line x1="2" y1="10" x2="22" y2="10" />
+      <path d="M8 21h8m-4-9v9m0-9a5 5 0 0 1-5-5V3h10v4a5 5 0 0 1-5 5z" />
+    </svg>
+  ),
+  Box: () => (
+    <svg
+      width="20"
+      height="20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+      <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+      <line x1="12" y1="22.08" x2="12" y2="12"></line>
     </svg>
   ),
 };
 
 export default function Laporan() {
-  const [mode, setMode] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [mode, setMode] = useState<"transaction" | "products" | "chart">(
+    "transaction"
+  );
 
-  // State Data
   const [report, setReport] = useState<DailyReport>({
     total_transaction: 0,
     gross_sales: 0,
@@ -161,56 +179,101 @@ export default function Laporan() {
     total_profit: 0,
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [periodData, setPeriodData] = useState<any[]>([]);
+  const [stockLogs, setStockLogs] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
 
-  // State Filter
-  const [filterYear, setFilterYear] = useState(
-    new Date().getFullYear().toString()
-  );
-  const [filterMonth, setFilterMonth] = useState<string>(
-    String(new Date().getMonth() + 1).padStart(2, "0")
-  );
+  const [selectedRankCategory, setSelectedRankCategory] =
+    useState<string>("Semua");
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [showSyncModal, setShowSyncModal] = useState(false);
+  const [toast, setToast] = useState<{
+    show: boolean;
+    msg: string;
+    type: "success" | "error";
+  }>({ show: false, msg: "", type: "success" });
 
   useEffect(() => {
-    setPeriodData([]);
     loadData();
   }, [mode]);
 
   const loadData = async () => {
     try {
-      if (mode === "daily") {
-        // @ts-ignore
-        const stats = await window.api.fetchTodayReport();
-        if (stats) setReport(stats);
+      // @ts-ignore
+      const stats = await window.api.fetchTodayReport();
+      if (stats) setReport(stats);
+
+      if (mode === "transaction") {
         // @ts-ignore
         const trans = await window.api.fetchTodayTransactions();
         if (trans) setTransactions(trans);
-      } else if (mode === "weekly") {
+      } else if (mode === "products") {
+        // Load Stock Logs
         // @ts-ignore
-        const data = await window.api.fetchWeeklyReport();
-        setPeriodData(data || []);
-      } else if (mode === "monthly") {
+        const logs = await window.api.fetchStockLogs();
+        setStockLogs(logs || []);
+
+        // Load Top Products
         // @ts-ignore
-        const data = await window.api.fetchMonthlyReport();
-        setPeriodData(data || []);
+        const tops = await window.api.fetchTopProducts();
+        setTopProducts(tops || []);
+      } else if (mode === "chart") {
+        // @ts-ignore
+        const charts = await window.api.fetchMonthlyChart();
+        setChartData(charts || []);
       }
     } catch (error) {
       console.error(error);
     }
   };
 
-  // --- LOGIKA FILTERING ---
-  const filteredPeriodData = periodData.filter((item) => {
-    if (!item) return false;
-    const isYearMatch = item.period_id.startsWith(filterYear);
-    if (mode === "monthly") return isYearMatch;
-    if (mode === "weekly") {
-      if (!item.start_date) return false;
-      const itemMonth = item.start_date.split("-")[1];
-      return isYearMatch && itemMonth === filterMonth;
+  // Logic Filter Peringkat
+  const rankCategories = [
+    "Semua",
+    ...new Set(
+      topProducts.map((p) => p.category).filter((c) => c && c.trim() !== "")
+    ),
+  ].sort();
+  let displayedRankProducts = topProducts;
+  if (selectedRankCategory !== "Semua") {
+    displayedRankProducts = topProducts.filter(
+      (p) => p.category === selectedRankCategory
+    );
+  }
+  const limit = selectedRankCategory === "Semua" ? 5 : 3;
+  const finalRankData = displayedRankProducts.slice(0, limit);
+
+  const showNotification = (
+    msg: string,
+    type: "success" | "error" = "success"
+  ) => {
+    setToast({ show: true, msg, type });
+    setTimeout(() => {
+      setToast((prev) => ({ ...prev, show: false }));
+    }, 3000);
+  };
+
+  const initiateSync = () => setShowSyncModal(true);
+
+  const confirmSync = async () => {
+    setIsSyncing(true);
+    try {
+      // @ts-ignore
+      const res = await window.api.syncToCloud();
+      if (res.success) {
+        showNotification("Laporan terkirim ke Google Sheets!", "success");
+        setShowSyncModal(false);
+      } else {
+        showNotification("Gagal Sync: " + res.msg, "error");
+        setShowSyncModal(false);
+      }
+    } catch (err) {
+      showNotification("Terjadi kesalahan sistem", "error");
+      setShowSyncModal(false);
+    } finally {
+      setIsSyncing(false);
     }
-    return isYearMatch;
-  });
+  };
 
   const getMethodColor = (m: string) => {
     if (m === "QRIS") return { bg: "rgba(59, 130, 246, 0.2)", text: "#60a5fa" };
@@ -219,14 +282,37 @@ export default function Laporan() {
     return { bg: "rgba(16, 185, 129, 0.2)", text: "#4ade80" };
   };
 
-  const getWeekLabel = (dateStr: string) => {
-    if (!dateStr) return "-";
-    const date = new Date(dateStr);
-    const day = date.getDate();
-    const weekInMonth = Math.ceil(day / 7);
-    const monthName = date.toLocaleDateString("id-ID", { month: "long" });
-    return `Minggu ke-${weekInMonth} (${monthName})`;
+  const getLogTypeStyle = (type: string) => {
+    if (type === "Barang Baru")
+      return { bg: "rgba(59, 130, 246, 0.2)", text: "#60a5fa" };
+    return { bg: "rgba(16, 185, 129, 0.2)", text: "#4ade80" };
   };
+
+  const getHeaderContent = () => {
+    switch (mode) {
+      case "transaction":
+        return {
+          title: "Laporan Transaksi",
+          subtitle: "Pantau detail penjualan dan omset harian.",
+        };
+      case "products":
+        return {
+          title: "Laporan Pergerakan Produk",
+          subtitle:
+            "Analisis barang masuk (stok) dan barang keluar (terlaris).",
+        };
+      case "chart":
+        return {
+          title: "Analisis Performa Toko",
+          subtitle: "Grafik pendapatan dan keuntungan bulanan.",
+        };
+      default:
+        return { title: "Laporan", subtitle: "" };
+    }
+  };
+  const header = getHeaderContent();
+
+  // --- KOMPONEN HELPER (DEFINISI DISINI AGAR TIDAK ERROR) ---
 
   const StatCard = ({ title, value, subtext, gradient, icon }: any) => (
     <div
@@ -297,229 +383,449 @@ export default function Laporan() {
     </div>
   );
 
-  // --- REPORT CARD (DIPERBAIKI BAGIAN BAWAHNYA) ---
-  const ReportCard = ({
-    data,
-    type,
-  }: {
-    data: any;
-    type: "weekly" | "monthly";
-  }) => (
-    <div
-      style={{
-        background: "#1e293b",
-        borderRadius: "12px",
-        border: "1px solid #334155",
-        padding: "20px",
-        display: "flex",
-        flexDirection: "column",
-        gap: "15px",
-        boxShadow: "0 4px 6px -1px rgba(0,0,0,0.2)",
-        transition: "transform 0.2s",
-      }}
-    >
-      {/* 1. Header Tanggal */}
+  const ProChart = ({ data }: { data: any[] }) => {
+    const totalRev = data.reduce((a, b) => a + b.revenue, 0);
+    const totalProf = data.reduce((a, b) => a + b.profit, 0);
+    const totalExp = totalRev - totalProf;
+    const rawMax = Math.max(...data.map((d) => d.revenue));
+    const maxVal = rawMax === 0 ? 100000 : rawMax;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(maxVal)));
+    const roundedMax = Math.ceil(maxVal / magnitude) * magnitude * 1.3;
+    const steps = 5;
+    const svgWidth = 1000;
+    const svgHeight = 450;
+    const paddingLeft = 80;
+    const paddingRight = 30;
+    const paddingTop = 60;
+    const paddingBottom = 50;
+    const graphW = svgWidth - paddingLeft - paddingRight;
+    const graphH = svgHeight - paddingTop - paddingBottom;
+    const colWidth = graphW / data.length;
+    const formatYLabel = (val: number) => {
+      if (val === 0) return "0";
+      if (val >= 1000000)
+        return (val / 1000000).toFixed(1).replace(".0", "") + "jt";
+      if (val >= 1000) return (val / 1000).toFixed(0) + "rb";
+      return val.toString();
+    };
+    const formatBarLabel = (val: number) => {
+      if (val === 0) return "";
+      if (val >= 1000000) return (val / 1000000).toFixed(1) + "jt";
+      if (val >= 1000) return (val / 1000).toFixed(0) + "k";
+      return val.toString();
+    };
+    const getY = (val: number) => {
+      const ratio = val / roundedMax;
+      return paddingTop + graphH - ratio * graphH;
+    };
+    const revTrendPoints = data
+      .map((d, i) => {
+        const barW = colWidth * 0.3;
+        const x = paddingLeft + i * colWidth + colWidth * 0.15 + barW / 2;
+        const y = getY(d.revenue);
+        return `${x},${y}`;
+      })
+      .join(" ");
+    const expTrendPoints = data
+      .map((d, i) => {
+        const expense = d.revenue - d.profit;
+        const barW = colWidth * 0.3;
+        const x =
+          paddingLeft + i * colWidth + colWidth * 0.15 + barW + 5 + barW / 2;
+        const y = getY(expense);
+        return `${x},${y}`;
+      })
+      .join(" ");
+    const profitPoints = data
+      .map((d, i) => {
+        const x = paddingLeft + i * colWidth + colWidth / 2;
+        const y = getY(d.profit);
+        return `${x},${y}`;
+      })
+      .join(" ");
+
+    return (
       <div
         style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "start",
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: "0.75rem",
-              color: "#64748b",
-              textTransform: "uppercase",
-              letterSpacing: "1px",
-              fontWeight: "bold",
-            }}
-          >
-            {type === "weekly" ? getWeekLabel(data.start_date) : "Periode"}
-          </div>
-          <div
-            style={{
-              fontSize: "1rem",
-              color: "#f8fafc",
-              fontWeight: "bold",
-              marginTop: "4px",
-            }}
-          >
-            {type === "weekly" && data.start_date && data.end_date
-              ? `${data.start_date} s/d ${data.end_date}`
-              : data.label}
-          </div>
-        </div>
-        <div
-          style={{
-            background: "#334155",
-            padding: "8px",
-            borderRadius: "8px",
-            color: "#fbbf24",
-          }}
-        >
-          <Icons.Calendar />
-        </div>
-      </div>
-
-      <div style={{ height: "1px", background: "#334155" }}></div>
-
-      {/* 2. Rincian Metode Pembayaran */}
-      <div
-        style={{
-          background: "rgba(15, 23, 42, 0.5)",
-          borderRadius: "8px",
-          padding: "12px",
           display: "flex",
           flexDirection: "column",
-          gap: "8px",
+          gap: "20px",
+          height: "100%",
         }}
       >
         <div
           style={{
-            fontSize: "0.7rem",
-            color: "#94a3b8",
-            textTransform: "uppercase",
-            fontWeight: "bold",
-            letterSpacing: "0.5px",
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr 1fr",
+            gap: "15px",
           }}
         >
-          Rincian Pendapatan
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: "0.85rem",
-            color: "#cbd5e1",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ color: "#4ade80" }}>
-              <Icons.Wallet />
-            </span>{" "}
-            Tunai
-          </div>
-          <div style={{ fontWeight: "600" }}>
-            Rp {data.tunai.toLocaleString("id-ID")}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: "0.85rem",
-            color: "#cbd5e1",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ color: "#60a5fa" }}>
-              <Icons.Qr />
-            </span>{" "}
-            QRIS
-          </div>
-          <div style={{ fontWeight: "600" }}>
-            Rp {data.qris.toLocaleString("id-ID")}
-          </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: "0.85rem",
-            color: "#cbd5e1",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <span style={{ color: "#c084fc" }}>
-              <Icons.Card />
-            </span>{" "}
-            Debit
-          </div>
-          <div style={{ fontWeight: "600" }}>
-            Rp {data.debit.toLocaleString("id-ID")}
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Grid Pendapatan vs Pengeluaran */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: "15px",
-          marginTop: "auto",
-        }}
-      >
-        <div>
           <div
             style={{
-              fontSize: "0.7rem",
-              color: "#94a3b8",
-              marginBottom: "4px",
+              background: "#1e293b",
+              border: "1px solid #334155",
+              padding: "15px",
+              borderRadius: "10px",
+              display: "flex",
+              alignItems: "center",
+              gap: "15px",
             }}
           >
-            Total Pendapatan
+            <div
+              style={{
+                background: "rgba(59, 130, 246, 0.1)",
+                padding: "10px",
+                borderRadius: "8px",
+                color: "#3b82f6",
+              }}
+            >
+              <Icons.Money />
+            </div>
+            <div>
+              <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+                Total Omset (6 Bulan)
+              </div>
+              <div
+                style={{
+                  fontSize: "1.2rem",
+                  fontWeight: "bold",
+                  color: "#f8fafc",
+                }}
+              >
+                Rp {totalRev.toLocaleString("id-ID")}
+              </div>
+            </div>
           </div>
           <div
             style={{
-              color: "#10b981",
-              fontWeight: "bold",
+              background: "#1e293b",
+              border: "1px solid #334155",
+              padding: "15px",
+              borderRadius: "10px",
+              display: "flex",
+              alignItems: "center",
+              gap: "15px",
+            }}
+          >
+            <div
+              style={{
+                background: "rgba(251, 191, 36, 0.1)",
+                padding: "10px",
+                borderRadius: "8px",
+                color: "#fbbf24",
+              }}
+            >
+              <Icons.Trending />
+            </div>
+            <div>
+              <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+                Total Keuntungan
+              </div>
+              <div
+                style={{
+                  fontSize: "1.2rem",
+                  fontWeight: "bold",
+                  color: "#fbbf24",
+                }}
+              >
+                Rp {totalProf.toLocaleString("id-ID")}
+              </div>
+            </div>
+          </div>
+          <div
+            style={{
+              background: "#1e293b",
+              border: "1px solid #334155",
+              padding: "15px",
+              borderRadius: "10px",
+              display: "flex",
+              alignItems: "center",
+              gap: "15px",
+            }}
+          >
+            <div
+              style={{
+                background: "rgba(236, 72, 153, 0.1)",
+                padding: "10px",
+                borderRadius: "8px",
+                color: "#ec4899",
+              }}
+            >
+              <Icons.Expense />
+            </div>
+            <div>
+              <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+                Total Modal (Pengeluaran)
+              </div>
+              <div
+                style={{
+                  fontSize: "1.2rem",
+                  fontWeight: "bold",
+                  color: "#ec4899",
+                }}
+              >
+                Rp {totalExp.toLocaleString("id-ID")}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div
+          style={{
+            background: "#1e293b",
+            borderRadius: "12px",
+            padding: "20px",
+            border: "1px solid #334155",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <h4
+            style={{
+              margin: "0 0 10px 0",
+              color: "#f8fafc",
+              fontWeight: "600",
               fontSize: "0.95rem",
             }}
           >
-            Rp {data.revenue.toLocaleString("id-ID")}
+            Analisis Omset vs Pengeluaran
+          </h4>
+          <div style={{ width: "100%", height: "350px" }}>
+            <svg
+              viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+              preserveAspectRatio="xMidYMid meet"
+              style={{ width: "100%", height: "100%", overflow: "visible" }}
+            >
+              <defs>
+                <linearGradient id="barBlue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.4" />
+                </linearGradient>
+                <linearGradient id="barPink" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#ec4899" stopOpacity="0.9" />
+                  <stop offset="100%" stopColor="#ec4899" stopOpacity="0.4" />
+                </linearGradient>
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {Array.from({ length: steps + 1 }).map((_, i) => {
+                const val = (roundedMax / steps) * i;
+                const y = getY(val);
+                return (
+                  <g key={i}>
+                    <text
+                      x={paddingLeft - 20}
+                      y={y + 5}
+                      fill="#64748b"
+                      fontSize="14"
+                      fontWeight="500"
+                      textAnchor="end"
+                    >
+                      {formatYLabel(val)}
+                    </text>
+                    <line
+                      x1={paddingLeft}
+                      y1={y}
+                      x2={svgWidth - paddingRight}
+                      y2={y}
+                      stroke="#334155"
+                      strokeWidth="1"
+                      strokeDasharray="8 8"
+                      opacity="0.3"
+                    />
+                  </g>
+                );
+              })}
+              <polyline
+                points={revTrendPoints}
+                fill="none"
+                stroke="#3b82f6"
+                strokeWidth="2"
+                strokeDasharray="6 6"
+                opacity="0.5"
+              />
+              <polyline
+                points={expTrendPoints}
+                fill="none"
+                stroke="#ec4899"
+                strokeWidth="2"
+                strokeDasharray="6 6"
+                opacity="0.5"
+              />
+              {data.map((d, i) => {
+                const zeroY = getY(0);
+                const expense = d.revenue - d.profit;
+                const revY = getY(d.revenue);
+                const expY = getY(expense);
+                const revHeight = Math.max(zeroY - revY, 4);
+                const expHeight = Math.max(zeroY - expY, 4);
+                const x = paddingLeft + i * colWidth + colWidth * 0.15;
+                const barW = colWidth * 0.3;
+                return (
+                  <g key={i}>
+                    <rect
+                      x={x}
+                      y={revY}
+                      width={barW}
+                      height={revHeight}
+                      fill="url(#barBlue)"
+                      rx="4"
+                    />
+                    <text
+                      x={x + barW / 2}
+                      y={revY - 10}
+                      fill="#60a5fa"
+                      fontSize="13"
+                      fontWeight="bold"
+                      textAnchor="middle"
+                    >
+                      {formatBarLabel(d.revenue)}
+                    </text>
+                    <rect
+                      x={x + barW + 5}
+                      y={expY}
+                      width={barW}
+                      height={expHeight}
+                      fill="url(#barPink)"
+                      rx="4"
+                    />
+                    <text
+                      x={x + barW + 5 + barW / 2}
+                      y={expY - 10}
+                      fill="#f472b6"
+                      fontSize="13"
+                      fontWeight="bold"
+                      textAnchor="middle"
+                    >
+                      {formatBarLabel(expense)}
+                    </text>
+                    <text
+                      x={paddingLeft + i * colWidth + colWidth / 2}
+                      y={svgHeight - 15}
+                      fill="#cbd5e1"
+                      fontSize="16"
+                      fontWeight="600"
+                      textAnchor="middle"
+                    >
+                      {d.label}
+                    </text>
+                  </g>
+                );
+              })}
+              <polyline
+                points={profitPoints}
+                fill="none"
+                stroke="#fbbf24"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                filter="url(#glow)"
+              />
+              {data.map((d, i) => {
+                const x = paddingLeft + i * colWidth + colWidth / 2;
+                const y = getY(d.profit);
+                return (
+                  <g key={`dot-${i}`}>
+                    <circle
+                      cx={x}
+                      cy={y}
+                      r="6"
+                      fill="#1e293b"
+                      stroke="#fbbf24"
+                      strokeWidth="3"
+                    />
+                    {d.profit > 0 && (
+                      <text
+                        x={x}
+                        y={y - 15}
+                        fill="#fbbf24"
+                        fontSize="14"
+                        fontWeight="bold"
+                        textAnchor="middle"
+                        style={{ textShadow: "0px 2px 4px rgba(0,0,0,0.8)" }}
+                      >
+                        {formatBarLabel(d.profit)}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
           </div>
-        </div>
-        <div>
           <div
             style={{
-              fontSize: "0.7rem",
-              color: "#94a3b8",
-              marginBottom: "4px",
+              display: "flex",
+              justifyContent: "center",
+              gap: "25px",
+              marginTop: "10px",
             }}
           >
-            Total Pengeluaran
-          </div>
-          <div
-            style={{
-              color: "#f43f5e",
-              fontWeight: "bold",
-              fontSize: "0.95rem",
-            }}
-          >
-            Rp {data.expense.toLocaleString("id-ID")}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "0.85rem",
+                color: "#94a3b8",
+              }}
+            >
+              <div
+                style={{
+                  width: "14px",
+                  height: "14px",
+                  background: "#3b82f6",
+                  borderRadius: "3px",
+                }}
+              ></div>{" "}
+              Pendapatan
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "0.85rem",
+                color: "#94a3b8",
+              }}
+            >
+              <div
+                style={{
+                  width: "14px",
+                  height: "14px",
+                  background: "#ec4899",
+                  borderRadius: "3px",
+                }}
+              ></div>{" "}
+              Pengeluaran
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                fontSize: "0.85rem",
+                color: "#94a3b8",
+              }}
+            >
+              <div
+                style={{
+                  width: "14px",
+                  height: "4px",
+                  background: "#fbbf24",
+                  borderRadius: "2px",
+                }}
+              ></div>{" "}
+              Keuntungan
+            </div>
           </div>
         </div>
       </div>
-
-      {/* 4. Footer Keuntungan [DIPERBAIKI: SEDERHANA & RAPI] */}
-      {/* Menggunakan border-top sebagai pemisah, bukan kotak background */}
-      <div
-        style={{
-          marginTop: "5px",
-          paddingTop: "10px",
-          borderTop: "1px solid #334155",
-        }}
-      >
-        <div
-          style={{ fontSize: "0.7rem", color: "#94a3b8", marginBottom: "4px" }}
-        >
-          Keuntungan Bersih
-        </div>
-        {/* Style disamakan dengan Total Pendapatan/Pengeluaran di atasnya */}
-        <div
-          style={{ color: "#fbbf24", fontWeight: "bold", fontSize: "0.95rem" }}
-        >
-          Rp {data.profit.toLocaleString("id-ID")}
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div
@@ -535,7 +841,141 @@ export default function Laporan() {
         boxSizing: "border-box",
       }}
     >
-      <style>{`.custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; } .custom-scroll::-webkit-scrollbar-track { background: transparent; } .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; } .laporan-row:hover { background-color: rgba(255, 255, 255, 0.05) !important; } .tab-btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px; } .tab-btn.active { background: #fbbf24; color: #1e293b; } .tab-btn.inactive { background: #1e293b; color: #94a3b8; border: 1px solid #334155; } .tab-btn.inactive:hover { background: #334155; color: #f8fafc; } .filter-select { background: #1e293b; color: #f8fafc; border: 1px solid #334155; padding: 8px 12px; borderRadius: 8px; outline: none; cursor: pointer; font-weight: bold; font-size: 0.85rem; }`}</style>
+      <style>{`
+        .custom-scroll::-webkit-scrollbar { width: 6px; height: 6px; } 
+        .custom-scroll::-webkit-scrollbar-track { background: transparent; } 
+        .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; } 
+        .laporan-row:hover { background-color: rgba(255, 255, 255, 0.05) !important; } 
+        .tab-btn { padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; border: none; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px; } 
+        .tab-btn.active { background: #fbbf24; color: #1e293b; } 
+        .tab-btn.inactive { background: #1e293b; color: #94a3b8; border: 1px solid #334155; } 
+        .tab-btn.inactive:hover { background: #334155; color: #f8fafc; } 
+        .filter-select { background: #1e293b; color: #f8fafc; border: 1px solid #334155; padding: 6px 12px; borderRadius: 8px; outline: none; cursor: pointer; font-size: 0.8rem; font-weight: 500; height: 32px; min-width: 150px; }
+        .filter-select:hover { border-color: #475569; }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(2px); }
+        .modal-content { background: #1e293b; border: 1px solid #334155; padding: 25px; borderRadius: 16px; width: 320px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); text-align: center; }
+      `}</style>
+
+      {/* TOAST */}
+      <div
+        style={{
+          position: "fixed",
+          bottom: "30px",
+          right: "30px",
+          zIndex: 9999,
+          background: "#1e293b",
+          color: "#f8fafc",
+          padding: "16px 24px",
+          borderRadius: "12px",
+          boxShadow: "0 10px 25px -5px rgba(0,0,0,0.3)",
+          border: "1px solid #334155",
+          borderLeft:
+            toast.type === "success"
+              ? "5px solid #10b981"
+              : "5px solid #ef4444",
+          display: "flex",
+          alignItems: "center",
+          gap: "12px",
+          transition: "all 0.4s",
+          opacity: toast.show ? 1 : 0,
+          transform: toast.show ? "translateX(0)" : "translateX(100%)",
+        }}
+      >
+        <div
+          style={{ color: toast.type === "success" ? "#10b981" : "#ef4444" }}
+        >
+          {toast.type === "success" ? <Icons.Check /> : <Icons.Alert />}
+        </div>
+        <div>
+          <div
+            style={{
+              fontSize: "0.75rem",
+              color: "#94a3b8",
+              textTransform: "uppercase",
+            }}
+          >
+            {toast.type === "success" ? "BERHASIL" : "GAGAL"}
+          </div>
+          <div style={{ fontSize: "0.9rem", fontWeight: "500" }}>
+            {toast.msg}
+          </div>
+        </div>
+      </div>
+
+      {/* CUSTOM MODAL SYNC */}
+      {showSyncModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div
+              style={{
+                background: "rgba(16, 185, 129, 0.1)",
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 15px",
+                color: "#10b981",
+              }}
+            >
+              <Icons.Cloud />
+            </div>
+            <h3 style={{ margin: "0 0 8px 0", color: "#f8fafc" }}>
+              Sync ke Cloud?
+            </h3>
+            <p
+              style={{
+                margin: "0 0 20px 0",
+                color: "#94a3b8",
+                fontSize: "0.9rem",
+                lineHeight: "1.4",
+              }}
+            >
+              Data hari ini akan dikirim ke Google Sheets. Pastikan koneksi
+              internet lancar.
+            </p>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={() => setShowSyncModal(false)}
+                disabled={isSyncing}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  background: "transparent",
+                  border: "1px solid #475569",
+                  color: "#cbd5e1",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmSync}
+                disabled={isSyncing}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  background: "#10b981",
+                  border: "none",
+                  color: "white",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+              >
+                {isSyncing ? <Icons.Loading /> : "Ya, Kirim"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* HEADER & CONTROLS */}
       <div style={{ flex: "0 0 auto", marginBottom: "20px" }}>
@@ -549,7 +989,7 @@ export default function Laporan() {
         >
           <div>
             <h2 style={{ margin: 0, color: "#f8fafc", fontSize: "1.5rem" }}>
-              Laporan Keuangan
+              {header.title}
             </h2>
             <p
               style={{
@@ -558,44 +998,10 @@ export default function Laporan() {
                 fontSize: "0.85rem",
               }}
             >
-              Pantau pendapatan dan keuntungan toko
+              {header.subtitle}
             </p>
           </div>
-
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            {mode !== "daily" && (
-              <select
-                className="filter-select"
-                value={filterYear}
-                onChange={(e) => setFilterYear(e.target.value)}
-              >
-                {[2024, 2025, 2026, 2027].map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </select>
-            )}
-            {mode === "weekly" && (
-              <select
-                className="filter-select"
-                value={filterMonth}
-                onChange={(e) => setFilterMonth(e.target.value)}
-              >
-                <option value="01">Januari</option>
-                <option value="02">Februari</option>
-                <option value="03">Maret</option>
-                <option value="04">April</option>
-                <option value="05">Mei</option>
-                <option value="06">Juni</option>
-                <option value="07">Juli</option>
-                <option value="08">Agustus</option>
-                <option value="09">September</option>
-                <option value="10">Oktober</option>
-                <option value="11">November</option>
-                <option value="12">Desember</option>
-              </select>
-            )}
             <div
               style={{
                 display: "flex",
@@ -606,43 +1012,65 @@ export default function Laporan() {
                 border: "1px solid #334155",
               }}
             >
+              {mode === "transaction" && (
+                <button
+                  onClick={initiateSync}
+                  style={{
+                    background: "#10b981",
+                    color: "white",
+                    border: "none",
+                    padding: "8px 12px",
+                    borderRadius: "8px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    fontWeight: "bold",
+                    fontSize: "0.85rem",
+                    marginRight: "5px",
+                    transition: "0.2s",
+                  }}
+                  title="Kirim ke Google Sheets"
+                >
+                  <Icons.Cloud /> Sync
+                </button>
+              )}
               <button
-                onClick={() => setMode("daily")}
+                onClick={() => setMode("transaction")}
                 className={`tab-btn ${
-                  mode === "daily" ? "active" : "inactive"
+                  mode === "transaction" ? "active" : "inactive"
                 }`}
               >
-                Harian
+                Transaksi
               </button>
               <button
-                onClick={() => {
-                  setMode("weekly");
-                }}
+                onClick={() => setMode("products")}
                 className={`tab-btn ${
-                  mode === "weekly" ? "active" : "inactive"
+                  mode === "products" ? "active" : "inactive"
                 }`}
               >
-                Mingguan
+                Produk
               </button>
               <button
-                onClick={() => setMode("monthly")}
+                onClick={() => setMode("chart")}
                 className={`tab-btn ${
-                  mode === "monthly" ? "active" : "inactive"
+                  mode === "chart" ? "active" : "inactive"
                 }`}
               >
-                Bulanan
+                Grafik
               </button>
             </div>
           </div>
         </div>
 
-        {/* STAT CARDS (DAILY) */}
-        {mode === "daily" && (
+        {/* STAT CARDS */}
+        {mode === "transaction" && (
           <div
             style={{
               display: "grid",
               gridTemplateColumns: "repeat(5, 1fr)",
               gap: "10px",
+              marginBottom: "20px",
             }}
           >
             <StatCard
@@ -683,7 +1111,7 @@ export default function Laporan() {
         )}
       </div>
 
-      {/* MAIN CONTENT AREA */}
+      {/* CONTENT AREA */}
       <div
         style={{
           flex: "1 1 auto",
@@ -693,7 +1121,8 @@ export default function Laporan() {
           overflow: "hidden",
         }}
       >
-        {mode === "daily" ? (
+        {/* --- TAB 1: TRANSAKSI (HARIAN) --- */}
+        {mode === "transaction" && (
           <div
             style={{
               background: "#1e293b",
@@ -706,6 +1135,27 @@ export default function Laporan() {
             }}
           >
             <div
+              style={{
+                padding: "16px 20px",
+                background: "#0f172a",
+                borderBottom: "1px solid #334155",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "1rem",
+                  color: "#f8fafc",
+                  fontWeight: "700",
+                }}
+              >
+                Detail Transaksi Hari Ini
+              </h3>
+            </div>
+            <div
               className="custom-scroll"
               style={{ overflowY: "auto", flex: "1" }}
             >
@@ -713,25 +1163,26 @@ export default function Laporan() {
                 <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
                   <tr>
                     {[
-                      "Jam",
-                      "Metode",
-                      "Detail Barang",
-                      "Kotor",
-                      "Diskon",
-                      "Bersih",
-                      "Laba",
+                      "JAM",
+                      "METODE",
+                      "DETAIL BARANG",
+                      "KOTOR",
+                      "DISKON",
+                      "BERSIH",
+                      "LABA",
                     ].map((h, i) => (
                       <th
                         key={i}
                         style={{
-                          background: "#0f172a",
+                          background: "#334155",
+                          color: "#f8fafc",
+                          padding: "14px 20px",
                           textAlign: i > 2 ? "right" : "left",
-                          padding: "12px 16px",
-                          fontSize: "0.7rem",
-                          color: "#cbd5e1",
+                          fontSize: "0.75rem",
                           fontWeight: "700",
                           textTransform: "uppercase",
                           borderBottom: "2px solid #334155",
+                          letterSpacing: "0.5px",
                         }}
                       >
                         {h}
@@ -774,7 +1225,7 @@ export default function Laporan() {
                         >
                           <td
                             style={{
-                              padding: "10px 16px",
+                              padding: "12px 20px",
                               color: "#94a3b8",
                               fontSize: "0.85rem",
                             }}
@@ -784,14 +1235,14 @@ export default function Laporan() {
                               { hour: "2-digit", minute: "2-digit" }
                             )}
                           </td>
-                          <td style={{ padding: "10px 16px" }}>
+                          <td style={{ padding: "12px 20px" }}>
                             <span
                               style={{
                                 background: style.bg,
                                 color: style.text,
-                                padding: "3px 6px",
-                                borderRadius: "4px",
-                                fontSize: "0.65rem",
+                                padding: "3px 8px",
+                                borderRadius: "6px",
+                                fontSize: "0.7rem",
                                 fontWeight: "700",
                               }}
                             >
@@ -800,7 +1251,7 @@ export default function Laporan() {
                           </td>
                           <td
                             style={{
-                              padding: "10px 16px",
+                              padding: "12px 20px",
                               color: "#f8fafc",
                               fontSize: "0.85rem",
                               maxWidth: "200px",
@@ -819,7 +1270,7 @@ export default function Laporan() {
                           </td>
                           <td
                             style={{
-                              padding: "10px 16px",
+                              padding: "12px 20px",
                               textAlign: "right",
                               color: "#cbd5e1",
                               fontSize: "0.85rem",
@@ -829,7 +1280,7 @@ export default function Laporan() {
                           </td>
                           <td
                             style={{
-                              padding: "10px 16px",
+                              padding: "12px 20px",
                               textAlign: "right",
                               color: "#f472b6",
                               fontWeight: "bold",
@@ -842,7 +1293,7 @@ export default function Laporan() {
                           </td>
                           <td
                             style={{
-                              padding: "10px 16px",
+                              padding: "12px 20px",
                               textAlign: "right",
                               fontWeight: "700",
                               color: "#fbbf24",
@@ -853,7 +1304,7 @@ export default function Laporan() {
                           </td>
                           <td
                             style={{
-                              padding: "10px 16px",
+                              padding: "12px 20px",
                               textAlign: "right",
                               fontWeight: "700",
                               color: t.profit < 0 ? "#ef4444" : "#10b981",
@@ -871,41 +1322,473 @@ export default function Laporan() {
               </table>
             </div>
           </div>
-        ) : (
-          <div className="custom-scroll" style={{ overflowY: "auto", flex: 1 }}>
-            {filteredPeriodData.length === 0 ? (
+        )}
+
+        {/* --- TAB 2: PRODUK (STOCK LOG & RANK) --- */}
+        {mode === "products" && (
+          <div
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              gap: "20px",
+              overflow: "hidden",
+            }}
+          >
+            {/* ATAS: TABEL BARANG MASUK */}
+            <div
+              style={{
+                background: "#1e293b",
+                borderRadius: "12px",
+                border: "1px solid #334155",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                flex: "1 1 50%",
+              }}
+            >
               <div
                 style={{
+                  padding: "12px 20px",
+                  background: "#0f172a",
+                  borderBottom: "1px solid #334155",
                   display: "flex",
-                  flexDirection: "column",
                   alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                  color: "#64748b",
                   gap: "10px",
-                  minHeight: "300px",
                 }}
               >
-                <Icons.Empty />
-                <span>
-                  Tidak ada laporan{" "}
-                  {mode === "weekly" ? "pada bulan ini" : "pada tahun ini"}.
-                </span>
+                <div style={{ color: "#10b981" }}>
+                  <Icons.Box />
+                </div>
+                <h3
+                  style={{
+                    margin: 0,
+                    fontSize: "0.95rem",
+                    color: "#f8fafc",
+                    fontWeight: "700",
+                  }}
+                >
+                  Riwayat Barang Masuk (Stok)
+                </h3>
               </div>
-            ) : (
+              <div
+                className="custom-scroll"
+                style={{ overflowY: "auto", flex: 1 }}
+              >
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
+                    <tr>
+                      <th
+                        style={{
+                          background: "#334155",
+                          color: "#94a3b8",
+                          padding: "10px 20px",
+                          textAlign: "left",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Waktu
+                      </th>
+                      <th
+                        style={{
+                          background: "#334155",
+                          color: "#94a3b8",
+                          padding: "10px 20px",
+                          textAlign: "left",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Nama Barang
+                      </th>
+                      <th
+                        style={{
+                          background: "#334155",
+                          color: "#94a3b8",
+                          padding: "10px 20px",
+                          textAlign: "center",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Tipe
+                      </th>
+                      <th
+                        style={{
+                          background: "#334155",
+                          color: "#94a3b8",
+                          padding: "10px 20px",
+                          textAlign: "right",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Jumlah
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {stockLogs.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          style={{
+                            padding: "30px",
+                            textAlign: "center",
+                            color: "#64748b",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          Belum ada data barang masuk.
+                        </td>
+                      </tr>
+                    ) : (
+                      stockLogs.map((log, idx) => {
+                        const typeStyle = getLogTypeStyle(log.log_type);
+                        return (
+                          <tr
+                            key={idx}
+                            style={{ borderBottom: "1px solid #334155" }}
+                          >
+                            <td
+                              style={{
+                                padding: "10px 20px",
+                                color: "#94a3b8",
+                                fontSize: "0.8rem",
+                              }}
+                            >
+                              {new Date(log.log_date).toLocaleString("id-ID")}
+                            </td>
+                            <td
+                              style={{
+                                padding: "10px 20px",
+                                color: "#f8fafc",
+                                fontSize: "0.85rem",
+                                fontWeight: "500",
+                              }}
+                            >
+                              {log.product_name}
+                            </td>
+                            <td
+                              style={{
+                                padding: "10px 20px",
+                                textAlign: "center",
+                              }}
+                            >
+                              <span
+                                style={{
+                                  background: typeStyle.bg,
+                                  color: typeStyle.text,
+                                  padding: "2px 6px",
+                                  borderRadius: "4px",
+                                  fontSize: "0.7rem",
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                {log.log_type}
+                              </span>
+                            </td>
+                            <td
+                              style={{
+                                padding: "10px 20px",
+                                textAlign: "right",
+                                color: "#10b981",
+                                fontWeight: "bold",
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              + {log.qty_added}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* BAWAH: TABEL BARANG TERLARIS */}
+            <div
+              style={{
+                background: "#1e293b",
+                borderRadius: "12px",
+                border: "1px solid #334155",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                flex: "1 1 50%",
+              }}
+            >
               <div
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                  gap: "20px",
-                  paddingBottom: "20px",
+                  padding: "12px 20px",
+                  background: "#0f172a",
+                  borderBottom: "1px solid #334155",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
                 }}
               >
-                {filteredPeriodData.map((data, idx) => (
-                  <ReportCard key={idx} data={data} type={mode} />
-                ))}
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "10px" }}
+                >
+                  <div style={{ color: "#fbbf24" }}>
+                    <Icons.Trophy />
+                  </div>
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontSize: "0.95rem",
+                      color: "#f8fafc",
+                      fontWeight: "700",
+                    }}
+                  >
+                    {selectedRankCategory === "Semua"
+                      ? "Top 5 Barang Terlaris (Global)"
+                      : `Top 3 Terlaris: ${selectedRankCategory}`}
+                  </h3>
+                </div>
+                <select
+                  className="filter-select"
+                  value={selectedRankCategory}
+                  onChange={(e) => setSelectedRankCategory(e.target.value)}
+                >
+                  <option value="Semua">Semua Kategori</option>
+                  {rankCategories
+                    .filter((c) => c !== "Semua")
+                    .map((cat, i) => (
+                      <option key={i} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                </select>
               </div>
-            )}
+              <div
+                className="custom-scroll"
+                style={{ overflowY: "auto", flex: 1 }}
+              >
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
+                    <tr>
+                      <th
+                        style={{
+                          background: "#334155",
+                          color: "#94a3b8",
+                          padding: "10px 20px",
+                          textAlign: "center",
+                          width: "50px",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Rank
+                      </th>
+                      <th
+                        style={{
+                          background: "#334155",
+                          color: "#94a3b8",
+                          padding: "10px 20px",
+                          textAlign: "left",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Nama Barang
+                      </th>
+                      <th
+                        style={{
+                          background: "#334155",
+                          color: "#94a3b8",
+                          padding: "10px 20px",
+                          textAlign: "left",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Kategori
+                      </th>
+                      <th
+                        style={{
+                          background: "#334155",
+                          color: "#94a3b8",
+                          padding: "10px 20px",
+                          textAlign: "right",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Terjual
+                      </th>
+                      <th
+                        style={{
+                          background: "#334155",
+                          color: "#94a3b8",
+                          padding: "10px 20px",
+                          textAlign: "right",
+                          fontSize: "0.7rem",
+                          fontWeight: "700",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Total Omset
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {finalRankData.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          style={{
+                            padding: "30px",
+                            textAlign: "center",
+                            color: "#64748b",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          Belum ada data penjualan.
+                        </td>
+                      </tr>
+                    ) : (
+                      finalRankData.map((item, idx) => (
+                        <tr
+                          key={idx}
+                          style={{
+                            borderBottom: "1px solid #334155",
+                            background:
+                              idx === 0
+                                ? "rgba(251, 191, 36, 0.05)"
+                                : "transparent",
+                          }}
+                        >
+                          <td
+                            style={{
+                              padding: "10px 20px",
+                              textAlign: "center",
+                            }}
+                          >
+                            <span
+                              style={{
+                                display: "inline-flex",
+                                width: "20px",
+                                height: "20px",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                borderRadius: "50%",
+                                background:
+                                  idx === 0
+                                    ? "#fbbf24"
+                                    : idx === 1
+                                    ? "#94a3b8"
+                                    : idx === 2
+                                    ? "#b45309"
+                                    : "#334155",
+                                color: idx < 3 ? "#000" : "#cbd5e1",
+                                fontWeight: "bold",
+                                fontSize: "0.7rem",
+                              }}
+                            >
+                              {idx + 1}
+                            </span>
+                          </td>
+                          <td style={{ padding: "10px 20px" }}>
+                            <div
+                              style={{
+                                color: "#f8fafc",
+                                fontWeight: "500",
+                                fontSize: "0.85rem",
+                              }}
+                            >
+                              {item.name}
+                            </div>
+                            <div
+                              style={{
+                                fontSize: "0.75rem",
+                                color: "#64748b",
+                                marginTop: "2px",
+                              }}
+                            >
+                              {item.brand ? (
+                                <span style={{ marginRight: "8px" }}>
+                                  {item.brand}
+                                </span>
+                              ) : (
+                                ""
+                              )}
+                              Stok Sisa:{" "}
+                              <span
+                                style={{
+                                  color:
+                                    item.current_stock < 5
+                                      ? "#ef4444"
+                                      : "#10b981",
+                                  fontWeight: "bold",
+                                }}
+                              >
+                                {item.current_stock}
+                              </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: "10px 20px" }}>
+                            <span
+                              style={{
+                                background: "#0f172a",
+                                color: "#cbd5e1",
+                                padding: "2px 6px",
+                                borderRadius: "4px",
+                                fontSize: "0.7rem",
+                                border: "1px solid #334155",
+                              }}
+                            >
+                              {item.category || "-"}
+                            </span>
+                          </td>
+                          <td
+                            style={{
+                              padding: "10px 20px",
+                              textAlign: "right",
+                              fontSize: "0.9rem",
+                              fontWeight: "bold",
+                              color: "#38bdf8",
+                            }}
+                          >
+                            {item.total_sold}
+                          </td>
+                          <td
+                            style={{
+                              padding: "10px 20px",
+                              textAlign: "right",
+                              color: "#fbbf24",
+                              fontWeight: "600",
+                              fontSize: "0.85rem",
+                            }}
+                          >
+                            Rp {item.total_revenue.toLocaleString("id-ID")}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB 3: GRAFIK --- */}
+        {mode === "chart" && (
+          <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <ProChart data={chartData} />
           </div>
         )}
       </div>

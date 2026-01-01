@@ -13,8 +13,11 @@ import {
   createTransaction,
   getTodayReport,
   getTodayTransactions,
-  getWeeklyReport, // [BARU]
-  getMonthlyReport, // [BARU]
+  getStockLogs,
+  getMonthlyChart,
+  getDailyHistory,
+  getTopProductsByCategory,
+  // [DIHAPUS] getHistoryByPlate
   db,
   dbPath,
 } from "./database/db";
@@ -22,6 +25,10 @@ import {
 const require = createRequire(import.meta.url);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// --- URL GOOGLE SCRIPT ---
+const GOOGLE_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbzSiltxtE6zqtOAZKtUYXFPAXRYYgftWsL2_rMIdkdOaRM6KPTbvAk7lXdHM5V7Amsy/exec";
 
 process.env.APP_ROOT = path.join(__dirname, "..");
 export const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
@@ -44,14 +51,11 @@ function createWindow() {
     },
     show: false,
   });
-
   win.maximize();
   win.show();
-
   win.webContents.on("did-finish-load", () => {
     win?.webContents.send("main-process-message", new Date().toLocaleString());
   });
-
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
@@ -65,7 +69,6 @@ app.on("window-all-closed", () => {
     win = null;
   }
 });
-
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
@@ -73,70 +76,96 @@ app.on("activate", () => {
 });
 
 app.whenReady().then(() => {
-  // 1. Inisialisasi Database
   initDB();
 
-  // 3. Setup IPC Handlers
-  ipcMain.handle("fetch-products", async () => {
-    return getProducts();
-  });
-
-  ipcMain.handle("create-product", async (_event, product) => {
-    return addProduct(product);
-  });
-
-  ipcMain.handle("update-product", async (_event, id, product) => {
-    return updateProduct(id, product);
-  });
-
+  // PRODUK
+  ipcMain.handle("fetch-products", async () => getProducts());
+  ipcMain.handle("add-product", async (_event, product) => addProduct(product));
+  ipcMain.handle("edit-product", async (_event, id, product) =>
+    updateProduct(id, product)
+  );
   ipcMain.handle("delete-product", async (_event, id) => {
-    const { response } = await dialog.showMessageBox({
-      type: "warning",
-      buttons: ["Batal", "Hapus"],
-      defaultId: 1,
-      cancelId: 0,
-      title: "Konfirmasi Hapus",
-      message: "Yakin ingin menghapus barang ini?",
-      detail: "Data yang dihapus tidak bisa dikembalikan.",
-    });
-
-    if (response === 0) return { success: false };
-    return deleteProduct(id);
+    try {
+      return deleteProduct(id);
+    } catch (err: any) {
+      return { success: false, msg: err.message };
+    }
   });
 
-  // [UPDATE] Handler Transaction menerima parameter tambahan
+  // TRANSAKSI
   ipcMain.handle(
     "create-transaction",
-    async (_event, items, total, discount, paymentMethod) => {
-      return createTransaction(items, total, discount, paymentMethod);
-    }
+    // [DIKEMBALIKAN KE 4 PARAMETER]
+    async (_event, items, total, discount, paymentMethod) =>
+      createTransaction(items, total, discount, paymentMethod)
   );
 
-  ipcMain.handle(
-    "confirm-payment",
-    async (_event, { total, bayar, kembalian }) => {
-      const { response } = await dialog.showMessageBox({
-        type: "question",
-        buttons: ["Batal", "Bayar"],
-        defaultId: 1,
-        cancelId: 0,
-        title: "Konfirmasi Pembayaran",
-        message: "Lanjutkan proses pembayaran?",
-        detail: `Total Tagihan:\t ${total}\nUang Diterima:\t ${bayar}\nKembalian:\t ${kembalian}`,
-        noLink: true,
+  // LAPORAN
+  ipcMain.handle("fetch-today-report", async () => getTodayReport());
+  ipcMain.handle("fetch-today-transactions", async () =>
+    getTodayTransactions()
+  );
+  ipcMain.handle("fetch-daily-history", async () => getDailyHistory());
+
+  // [BARU] Handler Stok & Grafik
+  ipcMain.handle("fetch-stock-logs", async () => getStockLogs());
+  ipcMain.handle("fetch-monthly-chart", async () => getMonthlyChart());
+
+  // PRODUK TERLARIS
+  ipcMain.handle("fetch-top-products", async () => getTopProductsByCategory());
+
+  // [DIHAPUS] Handler fetch-history-by-plate
+
+  // SYNC
+  ipcMain.handle("sync-to-cloud", async () => {
+    try {
+      const todayReport: any = getTodayReport();
+      const history: any = getDailyHistory();
+      const todayData = history[0];
+      if (!todayData)
+        return { success: false, msg: "Belum ada transaksi hari ini." };
+
+      const payload = {
+        date: new Date().toLocaleDateString("id-ID"),
+        total_trx: todayReport.total_transaction,
+        gross_sales: todayReport.gross_sales,
+        total_discount: todayReport.total_discount,
+        net_sales: todayReport.net_sales,
+        profit: todayReport.total_profit,
+        tunai: todayData.tunai,
+        qris: todayData.qris,
+        debit: todayData.debit,
+      };
+
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: "POST",
+        body: JSON.stringify(payload),
+        redirect: "follow",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
       });
-      return response === 1;
+      const textResponse = await response.text();
+      let result;
+      try {
+        result = JSON.parse(textResponse);
+      } catch (e) {
+        throw new Error("Respon Google bukan JSON.");
+      }
+
+      if (result.result === "success")
+        return {
+          success: true,
+          msg: "Data berhasil terkirim ke Google Sheets!",
+        };
+      else
+        throw new Error(
+          "Google Script Error: " + (result.message || "Unknown")
+        );
+    } catch (error: any) {
+      return { success: false, msg: error.message };
     }
-  );
-
-  ipcMain.handle("fetch-today-report", async () => {
-    return getTodayReport();
   });
 
-  ipcMain.handle("fetch-today-transactions", async () => {
-    return getTodayTransactions();
-  });
-
+  // SYSTEM
   ipcMain.handle("backup-database", async () => {
     const { filePath } = await dialog.showSaveDialog({
       title: "Backup Database Toko",
@@ -145,11 +174,10 @@ app.whenReady().then(() => {
         .slice(0, 10)}.db`,
       filters: [{ name: "Database Files", extensions: ["db"] }],
     });
-
     if (!filePath) return { success: false };
-
     try {
-      await db.backup(filePath);
+      db.pragma("wal_checkpoint(RESTART)");
+      fs.copyFileSync(dbPath, filePath);
       await dialog.showMessageBox({
         type: "info",
         title: "Backup Berhasil",
@@ -158,7 +186,6 @@ app.whenReady().then(() => {
       });
       return { success: true };
     } catch (e: any) {
-      dialog.showErrorBox("Backup Gagal", e.message);
       return { success: false, msg: e.message };
     }
   });
@@ -174,42 +201,22 @@ app.whenReady().then(() => {
       detail:
         "Pastikan Anda memilih file backup yang benar. Aplikasi akan restart otomatis setelah restore.",
     });
-
     if (response === 0) return { success: false };
-
     const { filePaths } = await dialog.showOpenDialog({
       title: "Pilih File Backup (.db)",
       properties: ["openFile"],
       filters: [{ name: "Database Files", extensions: ["db"] }],
     });
-
     if (!filePaths || filePaths.length === 0) return { success: false };
-
-    const backupFile = filePaths[0];
-
     try {
       db.close();
-      fs.copyFileSync(backupFile, dbPath);
+      fs.copyFileSync(filePaths[0], dbPath);
       app.relaunch();
       app.exit();
       return { success: true };
     } catch (e: any) {
-      dialog.showErrorBox(
-        "Restore Gagal",
-        "Pastikan file tidak sedang digunakan.\n" + e.message
-      );
       return { success: false, msg: e.message };
     }
-  });
-
-  // [BARU] Handler Laporan Mingguan
-  ipcMain.handle("fetch-weekly-report", async () => {
-    return getWeeklyReport();
-  });
-
-  // [BARU] Handler Laporan Bulanan
-  ipcMain.handle("fetch-monthly-report", async () => {
-    return getMonthlyReport();
   });
 
   createWindow();

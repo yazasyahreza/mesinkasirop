@@ -1,21 +1,20 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 const api = {
-  // Produk
+  // --- PRODUK ---
   fetchProducts: () => ipcRenderer.invoke("fetch-products"),
-  createProduct: (product: any) =>
-    ipcRenderer.invoke("create-product", product),
-  updateProduct: (id: number, product: any) =>
-    ipcRenderer.invoke("update-product", id, product),
+  addProduct: (product: any) => ipcRenderer.invoke("add-product", product),
+  editProduct: (id: number, product: any) =>
+    ipcRenderer.invoke("edit-product", id, product),
   deleteProduct: (id: number) => ipcRenderer.invoke("delete-product", id),
 
-  // Transaksi
-  // [UPDATE] Menerima parameter discount dan paymentMethod
+  // --- TRANSAKSI ---
   createTransaction: (
     items: any[],
     total: number,
     discount: number,
     paymentMethod: string
+    // Parameter 'plate' SUDAH DIHAPUS
   ) =>
     ipcRenderer.invoke(
       "create-transaction",
@@ -23,18 +22,30 @@ const api = {
       total,
       discount,
       paymentMethod
+      // Argument 'plate' SUDAH DIHAPUS
     ),
 
-  confirmPayment: (data: any) => ipcRenderer.invoke("confirm-payment", data),
-
-  // Laporan
-  fetchTodayReport: () => ipcRenderer.invoke("fetch-today-report"),
   fetchTodayTransactions: () => ipcRenderer.invoke("fetch-today-transactions"),
 
+  // --- LAPORAN ---
+  fetchTodayReport: () => ipcRenderer.invoke("fetch-today-report"),
+  fetchDailyHistory: () => ipcRenderer.invoke("fetch-daily-history"),
+
+  // [PENTING] Handler ini sebelumnya hilang, makanya data kosong:
+  fetchStockLogs: () => ipcRenderer.invoke("fetch-stock-logs"),
+  fetchMonthlyChart: () => ipcRenderer.invoke("fetch-monthly-chart"),
+
+  // (Opsional: Masih disimpan jika suatu saat butuh laporan lama)
   fetchWeeklyReport: () => ipcRenderer.invoke("fetch-weekly-report"),
   fetchMonthlyReport: () => ipcRenderer.invoke("fetch-monthly-report"),
 
-  // System
+  // --- PRODUK TERLARIS ---
+  fetchTopProducts: () => ipcRenderer.invoke("fetch-top-products"),
+
+  // [DIHAPUS] getHistoryByPlate
+
+  // --- SYSTEM & SYNC ---
+  syncToCloud: () => ipcRenderer.invoke("sync-to-cloud"),
   backupDatabase: () => ipcRenderer.invoke("backup-database"),
   restoreDatabase: () => ipcRenderer.invoke("restore-database"),
 };

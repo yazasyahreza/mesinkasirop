@@ -77,6 +77,19 @@ const Icons = {
       <path d="M14 14h3v3h-3z" />
     </svg>
   ),
+  CartCheck: () => (
+    <svg
+      width="40"
+      height="40"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      viewBox="0 0 24 24"
+    >
+      <path d="M9 11l3 3L22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </svg>
+  ),
 };
 
 interface KasirProps {
@@ -97,6 +110,7 @@ export default function Kasir({
   setPay,
 }: KasirProps) {
   const [scan, setScan] = useState("");
+  // [DIHAPUS] State licensePlate
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("TUNAI");
   const [discountInput, setDiscountInput] = useState("");
   const [toast, setToast] = useState<{
@@ -104,6 +118,10 @@ export default function Kasir({
     msg: string;
     type: "success" | "error";
   }>({ show: false, msg: "", type: "success" });
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+
   const scanRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -111,6 +129,7 @@ export default function Kasir({
   }, []);
 
   const formatRp = (num: number) => "Rp " + num.toLocaleString("id-ID");
+
   const showNotification = (msg: string, type: "success" | "error") => {
     setToast({ show: true, msg, type });
     setTimeout(() => {
@@ -185,6 +204,7 @@ export default function Kasir({
     setCart(cart.map((c) => (c.id === id ? { ...c, qty: finalQty } : c)));
   };
 
+  // --- LOGIKA HITUNG ---
   const subTotal = cart.reduce((a, b) => a + b.price * Number(b.qty), 0);
   let discountValue = 0;
   if (discountInput.includes("%")) {
@@ -199,26 +219,32 @@ export default function Kasir({
     paymentMethod === "TUNAI" ? Number(pay.replace(/\D/g, "")) : grandTotal;
   const kembalian = moneyReceived - grandTotal;
 
-  const handleCheckout = async () => {
-    const cleanCart = cart.map((c) => ({ ...c, qty: Number(c.qty) || 1 }));
+  const handlePreCheckout = () => {
+    if (cart.length === 0) return;
     if (paymentMethod === "TUNAI" && moneyReceived < grandTotal) {
       showNotification("Uang pembayaran kurang!", "error");
       return;
     }
-    // @ts-ignore
-    const isConfirmed = await window.api.confirmPayment({
-      total: formatRp(grandTotal),
-      bayar: formatRp(moneyReceived),
-      kembalian: formatRp(kembalian),
-    });
-    if (!isConfirmed) return;
+    setShowConfirmModal(true);
+  };
+
+  // [DIKEMBALIKAN KE AWAL] Fungsi Final Checkout TANPA Plat Nomor
+  const handleFinalCheckout = async () => {
+    setIsProcessing(true);
+    const cleanCart = cart.map((c) => ({ ...c, qty: Number(c.qty) || 1 }));
+
     // @ts-ignore
     const res = await window.api.createTransaction(
       cleanCart,
       subTotal,
       discountValue,
       paymentMethod
+      // Param ke-5 (licensePlate) SUDAH DIHAPUS
     );
+
+    setIsProcessing(false);
+    setShowConfirmModal(false);
+
     if (res.success) {
       showNotification("Transaksi Berhasil!", "success");
       setCart([]);
@@ -227,6 +253,8 @@ export default function Kasir({
       setPaymentMethod("TUNAI");
       onSuccess();
       setTimeout(() => scanRef.current?.focus(), 100);
+    } else {
+      showNotification("Gagal: " + res.error, "error");
     }
   };
 
@@ -234,15 +262,16 @@ export default function Kasir({
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
         e.preventDefault();
-        if (cart.length > 0) handleCheckout();
+        if (showConfirmModal) handleFinalCheckout();
+        else if (cart.length > 0) handlePreCheckout();
       }
+      if (e.key === "Escape" && showConfirmModal) setShowConfirmModal(false);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cart, pay, discountInput, paymentMethod]);
+  }, [cart, pay, discountInput, paymentMethod, showConfirmModal]); // Dependency licensePlate dihapus
 
   return (
-    // [FIX UTAMA] Menambahkan display: "grid" secara eksplisit agar kolom terbagi
     <div
       className="main-grid"
       style={{
@@ -265,7 +294,146 @@ export default function Kasir({
         .pay-btn { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
         .pay-btn:hover { background: #334155; }
         .pay-btn.active { background: #3b82f6; color: white; border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(2px); }
+        .modal-content { background: #1e293b; border: 1px solid #334155; padding: 30px; borderRadius: 16px; width: 360px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; animation: popIn 0.2s ease-out; }
+        @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
       `}</style>
+
+      {/* CUSTOM MODAL */}
+      {showConfirmModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div
+              style={{
+                background: "rgba(59, 130, 246, 0.1)",
+                width: "60px",
+                height: "60px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 15px",
+                color: "#3b82f6",
+              }}
+            >
+              <Icons.CartCheck />
+            </div>
+            <h3
+              style={{
+                margin: "0 0 5px 0",
+                color: "#f8fafc",
+                fontSize: "1.2rem",
+              }}
+            >
+              Konfirmasi Bayar?
+            </h3>
+            <p
+              style={{
+                margin: "0 0 20px 0",
+                color: "#94a3b8",
+                fontSize: "0.9rem",
+              }}
+            >
+              Pastikan uang diterima sudah sesuai.
+            </p>
+
+            {/* [DIHAPUS] Bagian Tampilan Plat Nomor di Modal */}
+
+            <div
+              style={{
+                background: "#0f172a",
+                borderRadius: "8px",
+                padding: "15px",
+                marginBottom: "25px",
+                border: "1px solid #334155",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: "8px",
+                  fontSize: "0.9rem",
+                  color: "#cbd5e1",
+                }}
+              >
+                <span>Total Tagihan</span>
+                <span style={{ fontWeight: "bold" }}>
+                  {formatRp(grandTotal)}
+                </span>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  marginBottom: "8px",
+                  fontSize: "0.9rem",
+                  color: "#cbd5e1",
+                }}
+              >
+                <span>Uang Diterima</span>
+                <span style={{ fontWeight: "bold", color: "#4ade80" }}>
+                  {formatRp(moneyReceived)}
+                </span>
+              </div>
+              <div
+                style={{
+                  height: "1px",
+                  background: "#334155",
+                  margin: "8px 0",
+                }}
+              ></div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: "1rem",
+                  color: "#f8fafc",
+                }}
+              >
+                <span>Kembalian</span>
+                <span style={{ fontWeight: "800", color: "#fbbf24" }}>
+                  {formatRp(kembalian < 0 ? 0 : kembalian)}
+                </span>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                disabled={isProcessing}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: "transparent",
+                  border: "1px solid #475569",
+                  color: "#cbd5e1",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleFinalCheckout}
+                disabled={isProcessing}
+                style={{
+                  flex: 1,
+                  padding: "12px",
+                  background: "#3b82f6",
+                  border: "none",
+                  color: "white",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                }}
+              >
+                {isProcessing ? "Memproses..." : "Ya, Bayar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TOAST */}
       <div
@@ -290,7 +458,6 @@ export default function Kasir({
           transition: "all 0.4s",
           opacity: toast.show ? 1 : 0,
           transform: toast.show ? "translateX(0)" : "translateX(100%)",
-          pointerEvents: toast.show ? "auto" : "none",
         }}
       >
         <div
@@ -299,7 +466,13 @@ export default function Kasir({
           {toast.type === "success" ? <Icons.Check /> : <Icons.Alert />}
         </div>
         <div>
-          <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
+          <div
+            style={{
+              fontSize: "0.75rem",
+              color: "#94a3b8",
+              textTransform: "uppercase",
+            }}
+          >
             {toast.type === "success" ? "BERHASIL" : "GAGAL"}
           </div>
           <div style={{ fontSize: "0.9rem", fontWeight: "500" }}>
@@ -475,6 +648,9 @@ export default function Kasir({
           overflowY: "auto",
         }}
       >
+        {/* [DIHAPUS] Input Plat Nomor */}
+
+        {/* Scan Barcode */}
         <div
           style={{
             background: "#0f172a",
@@ -518,6 +694,8 @@ export default function Kasir({
             />
           </form>
         </div>
+
+        {/* Kalkulasi */}
         <div
           style={{
             background: "#0f172a",
@@ -595,6 +773,8 @@ export default function Kasir({
             {formatRp(grandTotal)}
           </div>
         </div>
+
+        {/* Metode Pembayaran */}
         <div style={{ marginBottom: "20px" }}>
           <label
             style={{
@@ -642,6 +822,7 @@ export default function Kasir({
             ))}
           </div>
         </div>
+
         {paymentMethod === "TUNAI" && (
           <div style={{ marginBottom: "20px" }}>
             <label
@@ -674,6 +855,7 @@ export default function Kasir({
             />
           </div>
         )}
+
         <div
           style={{
             display: "flex",
@@ -699,8 +881,9 @@ export default function Kasir({
             {formatRp(kembalian < 0 ? 0 : kembalian)}
           </strong>
         </div>
+
         <button
-          onClick={handleCheckout}
+          onClick={handlePreCheckout}
           disabled={!cart.length}
           style={{
             width: "100%",

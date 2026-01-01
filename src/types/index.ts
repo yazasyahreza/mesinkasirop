@@ -8,7 +8,9 @@ export interface Product {
   stock: number;
   category?: string;
   item_number?: string;
-  created_at?: string; // [BARU] Tambahan untuk kolom Tanggal di Gudang
+  brand?: string;
+  compatibility?: string;
+  created_at?: string;
 }
 
 export interface CartItem extends Product {
@@ -27,6 +29,7 @@ export interface Transaction {
   discount: number;
   net_total: number;
   profit: number;
+  // [DIHAPUS] license_plate
 }
 
 export interface TransactionDetail {
@@ -44,18 +47,28 @@ export interface DailyReport {
   total_profit: number;
 }
 
-// [BARU] Interface untuk Laporan Mingguan & Bulanan
+// Interface untuk Laporan Mingguan, Bulanan, & Harian (History)
 export interface PeriodReport {
   period_id: string;
-  label: string; // Contoh: "Januari 2025" atau "2025-12-20 s/d ..."
-  start_date?: string; // Khusus Mingguan
-  end_date?: string; // Khusus Mingguan
+  label: string;
+  start_date?: string;
+  end_date?: string;
   revenue: number;
   expense: number;
   profit: number;
-  tunai: number; // [BARU] Rincian Tunai
-  qris: number; // [BARU] Rincian QRIS
-  debit: number; // [BARU] Rincian Debit
+  tunai: number;
+  qris: number;
+  debit: number;
+}
+
+// Interface untuk Produk Terlaris
+export interface TopProduct {
+  category: string;
+  name: string;
+  brand: string;
+  current_stock: number;
+  total_sold: number;
+  total_revenue: number;
 }
 
 // --- DEFINISI GLOBAL WINDOW.API (PENTING!) ---
@@ -64,21 +77,18 @@ declare global {
     api: {
       // Produk
       fetchProducts: () => Promise<Product[]>;
-
-      // [UPDATE NAMA] Diubah jadi addProduct agar sesuai dengan Gudang.tsx
       addProduct: (data: any) => Promise<any>;
-
-      // [UPDATE NAMA] Diubah jadi editProduct agar sesuai dengan Gudang.tsx
       editProduct: (id: number, data: any) => Promise<any>;
-
       deleteProduct: (id: number) => Promise<any>;
 
       // Transaksi
+      // [DIKEMBALIKAN KE 4 PARAMETER]
       createTransaction: (
         items: any[],
         total: number,
         discount: number,
         paymentMethod: string
+        // Parameter licensePlate SUDAH DIHAPUS
       ) => Promise<any>;
 
       fetchTransactions: () => Promise<Transaction[]>;
@@ -86,15 +96,30 @@ declare global {
       fetchTransactionDetails: (id: number) => Promise<TransactionDetail[]>;
       deleteTransaction: (id: number) => Promise<any>;
 
-      // Konfirmasi Pembayaran (Opsional, jika pakai dialog konfirmasi)
+      // [DIHAPUS] getHistoryByPlate
+
+      // Konfirmasi Pembayaran
       confirmPayment: (details: any) => Promise<boolean>;
 
       // Laporan
       fetchTodayReport: () => Promise<DailyReport>;
 
-      // [BARU] Tambahan untuk Laporan Mingguan & Bulanan
+      // Tambahan agar Laporan.tsx tidak error juga
+      fetchStockLogs: () => Promise<any[]>;
+      fetchMonthlyChart: () => Promise<any[]>;
+
+      // Riwayat Harian (Grid Card)
+      fetchDailyHistory: () => Promise<PeriodReport[]>;
+
+      // Laporan Mingguan & Bulanan (Table)
       fetchWeeklyReport: () => Promise<PeriodReport[]>;
       fetchMonthlyReport: () => Promise<PeriodReport[]>;
+
+      // Produk Terlaris
+      fetchTopProducts: () => Promise<TopProduct[]>;
+
+      // Sync ke Google Sheets
+      syncToCloud: () => Promise<{ success: boolean; msg: string }>;
 
       // Backup Database
       backupDatabase: () => Promise<{

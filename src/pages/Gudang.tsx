@@ -124,6 +124,8 @@ export default function Gudang({ onUpdate }: GudangProps) {
     msg: string;
     type: "success" | "error";
   }>({ show: false, msg: "", type: "success" });
+
+  // [UPDATE] State form ditambah brand & compatibility
   const [form, setForm] = useState({
     barcode: "",
     name: "",
@@ -132,9 +134,19 @@ export default function Gudang({ onUpdate }: GudangProps) {
     stock: "",
     category: "",
     item_number: "",
+    brand: "", // Baru
+    compatibility: "", // Baru
   });
+
   const [editId, setEditId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const [showLowStock, setShowLowStock] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("");
+
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deleteTargetName, setDeleteTargetName] = useState("");
+
   const barcodeRef = useRef<HTMLInputElement>(null);
 
   const loadProducts = async () => {
@@ -156,20 +168,20 @@ export default function Gudang({ onUpdate }: GudangProps) {
     }, 3000);
   };
 
-  // [BARU] Helper Format Tanggal Indonesia
   const formatDate = (dateString?: string) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
     return date.toLocaleDateString("id-ID", {
       day: "numeric",
-      month: "short", // "Des"
-      year: "numeric", // "2025"
+      month: "short",
+      year: "numeric",
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.price) return;
+
     const data = {
       ...form,
       cost_price: Number(String(form.cost_price).replace(/\D/g, "")) || 0,
@@ -177,7 +189,6 @@ export default function Gudang({ onUpdate }: GudangProps) {
       stock: Number(String(form.stock).replace(/\D/g, "")) || 0,
     };
 
-    // [UPDATE] Menggunakan addProduct & editProduct sesuai types.ts
     // @ts-ignore
     const res = editId
       ? await window.api.editProduct(editId, data)
@@ -193,6 +204,8 @@ export default function Gudang({ onUpdate }: GudangProps) {
         stock: "",
         category: "",
         item_number: "",
+        brand: "",
+        compatibility: "", // Reset form baru
       });
       loadProducts();
       onUpdate();
@@ -203,21 +216,37 @@ export default function Gudang({ onUpdate }: GudangProps) {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm("Hapus barang ini?")) return;
+  const initiateDelete = (p: Product) => {
+    setDeleteTargetId(p.id);
+    setDeleteTargetName(p.name);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
     // @ts-ignore
-    const res = await window.api.deleteProduct(id);
+    const res = await window.api.deleteProduct(deleteTargetId);
+
+    setShowDeleteModal(false);
+    setDeleteTargetId(null);
+
     if (res.success) {
       loadProducts();
       onUpdate();
       showNotification("Barang dihapus");
     } else {
-      if (res.reason === "LOCKED")
+      if (res.reason === "LOCKED") {
         showNotification("Gagal: Barang ada di transaksi hari ini", "error");
-      else showNotification("Error sistem", "error");
+      } else {
+        showNotification(
+          "Gagal: " + (res.msg || res.error || "Error sistem"),
+          "error"
+        );
+      }
     }
   };
 
+  // [UPDATE] Handle Edit mengisi form brand & compatibility
   const handleEdit = (p: Product) => {
     setEditId(p.id);
     setForm({
@@ -228,9 +257,16 @@ export default function Gudang({ onUpdate }: GudangProps) {
       stock: p.stock.toString(),
       category: p.category || "",
       item_number: p.item_number || "",
+      brand: p.brand || "", // Load data baru
+      compatibility: p.compatibility || "", // Load data baru
     });
   };
 
+  const categories = [
+    ...new Set(
+      products.map((p) => p.category).filter((c) => c && c.trim() !== "")
+    ),
+  ].sort();
   const activeProducts = products.filter(
     (p) => !p.name.toUpperCase().includes("NONAKTIF")
   );
@@ -238,16 +274,23 @@ export default function Gudang({ onUpdate }: GudangProps) {
   const totalAsset = activeProducts.reduce(
     (sum, p) => sum + p.cost_price * p.stock,
     0
-  ); // Asset dihitung dari Modal * Stok
+  );
   const lowStockCount = activeProducts.filter((p) => p.stock < 5).length;
 
   const filtered = products.filter((p) => {
-    const term = search.toLowerCase();
-    return (
-      p.name.toLowerCase().includes(term) ||
-      p.barcode.includes(term) ||
-      (p.item_number && p.item_number.toLowerCase().includes(term))
-    );
+    const term = search.toLowerCase(); // Input user jadi huruf kecil
+    const matchesSearch =
+      (p.name && p.name.toLowerCase().includes(term)) ||
+      (p.barcode && p.barcode.toLowerCase().includes(term)) || // <--- PERBAIKAN DI SINI (Tambah toLowerCase)
+      (p.item_number && p.item_number.toLowerCase().includes(term)) ||
+      (p.brand && p.brand.toLowerCase().includes(term)) ||
+      (p.compatibility && p.compatibility.toLowerCase().includes(term));
+
+    const matchesStock = showLowStock ? p.stock < 5 : true;
+    const matchesCategory = selectedCategory
+      ? p.category === selectedCategory
+      : true;
+    return matchesSearch && matchesStock && matchesCategory;
   });
 
   const inputStyle: React.CSSProperties = {
@@ -279,15 +322,86 @@ export default function Gudang({ onUpdate }: GudangProps) {
         height: "100%",
       }}
     >
-      <style>
-        {`
+      <style>{`
           .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
           .custom-scroll::-webkit-scrollbar-track { background: transparent; }
           .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; border: 2px solid #1e293b; }
           .custom-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
           .gudang-row:hover { background-color: rgba(255, 255, 255, 0.05) !important; transition: background-color 0.2s ease; }
-        `}
-      </style>
+          .filter-select { background: #1e293b; color: #f8fafc; border: 1px solid #334155; padding: 8px 12px; borderRadius: 8px; outline: none; cursor: pointer; font-size: 0.85rem; font-weight: 500; height: 35px; }
+          .filter-select:hover { border-color: #475569; }
+          .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(2px); }
+          .modal-content { background: #1e293b; border: 1px solid #334155; padding: 25px; borderRadius: 16px; width: 340px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); text-align: center; animation: popIn 0.2s ease-out; }
+          @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        `}</style>
+
+      {/* MODAL HAPUS */}
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div
+              style={{
+                background: "rgba(239, 68, 68, 0.1)",
+                width: "50px",
+                height: "50px",
+                borderRadius: "50%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 auto 15px",
+                color: "#ef4444",
+              }}
+            >
+              <Icons.Trash />
+            </div>
+            <h3 style={{ margin: "0 0 8px 0", color: "#f8fafc" }}>
+              Hapus Barang?
+            </h3>
+            <p
+              style={{
+                margin: "0 0 20px 0",
+                color: "#94a3b8",
+                fontSize: "0.9rem",
+              }}
+            >
+              Anda akan menghapus <strong>"{deleteTargetName}"</strong>.
+              Tindakan ini tidak bisa dibatalkan.
+            </p>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  background: "transparent",
+                  border: "1px solid #475569",
+                  color: "#cbd5e1",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  flex: 1,
+                  padding: "10px",
+                  background: "#ef4444",
+                  border: "none",
+                  color: "white",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "600",
+                }}
+              >
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TOAST */}
       <div
@@ -383,21 +497,54 @@ export default function Gudang({ onUpdate }: GudangProps) {
             <input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Contoh: Oli Yamalube"
+              placeholder="Contoh: Kampas Rem Depan"
               style={inputStyle}
               required
             />
           </div>
+
+          {/* INPUT BARU: MEREK & KATEGORI (SEBARIS) */}
           <div style={{ display: "flex", gap: "12px", marginBottom: "15px" }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Kategori</label>
               <input
+                list="category-list"
                 value={form.category}
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
-                placeholder="Oli"
+                placeholder="Oli / Rem"
+                style={inputStyle}
+              />
+              <datalist id="category-list">
+                {categories.map((c, i) => (
+                  <option key={i} value={c} />
+                ))}
+              </datalist>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Merek</label>
+              <input
+                value={form.brand}
+                onChange={(e) => setForm({ ...form, brand: e.target.value })}
+                placeholder="AHM"
                 style={inputStyle}
               />
             </div>
+          </div>
+
+          {/* INPUT BARU: KOMPATIBILITAS */}
+          <div style={{ marginBottom: "15px" }}>
+            <label style={labelStyle}>Kompatibilitas (Tipe Motor)</label>
+            <input
+              value={form.compatibility}
+              onChange={(e) =>
+                setForm({ ...form, compatibility: e.target.value })
+              }
+              placeholder="Cth: Supra, Grand, Prima"
+              style={inputStyle}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: "12px", marginBottom: "15px" }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Kode Part</label>
               <input
@@ -409,8 +556,20 @@ export default function Gudang({ onUpdate }: GudangProps) {
                 style={inputStyle}
               />
             </div>
+            <div style={{ flex: 1 }}>
+              <label style={labelStyle}>Stok Awal</label>
+              <input
+                value={form.stock}
+                onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                placeholder="0"
+                type="number"
+                style={inputStyle}
+                required
+              />
+            </div>
           </div>
-          <div style={{ display: "flex", gap: "12px", marginBottom: "15px" }}>
+
+          <div style={{ display: "flex", gap: "12px", marginBottom: "25px" }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Modal</label>
               <input
@@ -430,21 +589,10 @@ export default function Gudang({ onUpdate }: GudangProps) {
                 onChange={(e) => setForm({ ...form, price: e.target.value })}
                 placeholder="0"
                 type="number"
-                style={{ ...inputStyle, border: "1px solid #6366f1" }}
+                style={inputStyle}
                 required
               />
             </div>
-          </div>
-          <div style={{ marginBottom: "25px" }}>
-            <label style={labelStyle}>Stok Awal</label>
-            <input
-              value={form.stock}
-              onChange={(e) => setForm({ ...form, stock: e.target.value })}
-              placeholder="0"
-              type="number"
-              style={inputStyle}
-              required
-            />
           </div>
 
           <button
@@ -482,6 +630,8 @@ export default function Gudang({ onUpdate }: GudangProps) {
                   stock: "",
                   category: "",
                   item_number: "",
+                  brand: "",
+                  compatibility: "",
                 });
               }}
               style={{
@@ -517,60 +667,118 @@ export default function Gudang({ onUpdate }: GudangProps) {
           flexDirection: "column",
         }}
       >
-        {/* STATS */}
+        {/* STATS HEADER */}
         <div
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr 1fr",
-            gap: "20px",
+            gap: "15px",
             marginBottom: "25px",
           }}
         >
-          {[
-            { label: "Total Barang", val: totalItems, color: "#f8fafc" },
-            {
-              label: "Total Aset",
-              val: `Rp ${totalAsset.toLocaleString("id-ID")}`,
-              color: "#fbbf24",
-            },
-            {
-              label: "Stok Menipis",
-              val: lowStockCount,
-              color: lowStockCount > 0 ? "#ef4444" : "#10b981",
-            },
-          ].map((item, idx) => (
+          <div
+            style={{
+              background: "#1e293b",
+              padding: "20px",
+              borderRadius: "12px",
+              border: "1px solid #334155",
+            }}
+          >
             <div
-              key={idx}
               style={{
-                background: "#1e293b",
-                padding: "20px",
-                borderRadius: "12px",
-                border: "1px solid #334155",
+                fontSize: "0.85rem",
+                color: "#94a3b8",
+                marginBottom: "8px",
               }}
             >
-              <div
-                style={{
-                  fontSize: "0.85rem",
-                  color: "#94a3b8",
-                  marginBottom: "8px",
-                }}
-              >
-                {item.label}
-              </div>
-              <div
-                style={{
-                  fontSize: "1.5rem",
-                  fontWeight: "bold",
-                  color: item.color,
-                }}
-              >
-                {item.val}
-              </div>
+              Total Barang
             </div>
-          ))}
+            <div
+              style={{
+                fontSize: "1.5rem",
+                fontWeight: "bold",
+                color: "#f8fafc",
+              }}
+            >
+              {totalItems}
+            </div>
+          </div>
+          <div
+            style={{
+              background: "#1e293b",
+              padding: "20px",
+              borderRadius: "12px",
+              border: "1px solid #334155",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.85rem",
+                color: "#fbbf24",
+                marginBottom: "8px",
+              }}
+            >
+              Total Aset (Modal)
+            </div>
+            <div
+              style={{
+                fontSize: "1.5rem",
+                fontWeight: "bold",
+                color: "#fbbf24",
+              }}
+            >
+              Rp {totalAsset.toLocaleString("id-ID")}
+            </div>
+          </div>
+          <div
+            onClick={() => setShowLowStock(!showLowStock)}
+            style={{
+              background: showLowStock ? "rgba(239, 68, 68, 0.15)" : "#1e293b",
+              padding: "20px",
+              borderRadius: "12px",
+              border: showLowStock ? "1px solid #ef4444" : "1px solid #334155",
+              cursor: "pointer",
+              transition: "all 0.2s",
+            }}
+          >
+            <div
+              style={{
+                fontSize: "0.85rem",
+                color: lowStockCount > 0 ? "#ef4444" : "#10b981",
+                marginBottom: "4px",
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <span>Stok Menipis</span>{" "}
+              {showLowStock && (
+                <span style={{ fontSize: "0.7rem" }}>FILTER AKTIF</span>
+              )}
+            </div>
+            <div
+              style={{
+                fontSize: "1.5rem",
+                fontWeight: "bold",
+                color: lowStockCount > 0 ? "#ef4444" : "#10b981",
+              }}
+            >
+              {lowStockCount}
+            </div>
+            <div
+              style={{
+                fontSize: "0.75rem",
+                marginTop: "8px",
+                fontStyle: "italic",
+                opacity: 0.7,
+                color: showLowStock ? "#fca5a5" : "#94a3b8",
+              }}
+            >
+              Klik untuk melihat daftar barang
+            </div>
+          </div>
         </div>
 
-        {/* HEADER & SEARCH */}
+        {/* HEADER & CONTROLS */}
         <div
           style={{
             display: "flex",
@@ -580,35 +788,55 @@ export default function Gudang({ onUpdate }: GudangProps) {
           }}
         >
           <h3 style={{ margin: 0, color: "#f8fafc" }}>Stok Sparepart</h3>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              background: "#1e293b",
-              border: "1px solid #334155",
-              borderRadius: "8px",
-              padding: "8px 12px",
-              width: "280px",
-            }}
-          >
-            <span
-              style={{ marginRight: "10px", color: "#64748b", display: "flex" }}
+          <div style={{ display: "flex", gap: "10px" }}>
+            <select
+              className="filter-select"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              style={{ width: "150px" }}
             >
-              <Icons.Search />
-            </span>
-            <input
-              placeholder="Cari nama / kode..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              <option value="">Semua Kategori</option>
+              {categories.map((c, i) => (
+                <option key={i} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <div
               style={{
-                border: "none",
-                background: "transparent",
-                outline: "none",
-                width: "100%",
-                fontSize: "0.95rem",
-                color: "#f8fafc",
+                display: "flex",
+                alignItems: "center",
+                background: "#1e293b",
+                border: "1px solid #334155",
+                borderRadius: "8px",
+                padding: "0 12px",
+                width: "220px",
+                height: "35px",
               }}
-            />
+            >
+              <span
+                style={{
+                  marginRight: "10px",
+                  color: "#64748b",
+                  display: "flex",
+                }}
+              >
+                <Icons.Search />
+              </span>
+              <input
+                placeholder="Cari nama / kode..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  outline: "none",
+                  width: "100%",
+                  fontSize: "0.9rem",
+                  color: "#f8fafc",
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -629,11 +857,11 @@ export default function Gudang({ onUpdate }: GudangProps) {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
                 <tr>
-                  {/* [UPDATE] Menambahkan TANGGAL di Header */}
+                  {/* [UPDATE] Header Kolom disesuaikan */}
                   {[
-                    "TANGGAL",
-                    "NAMA / KODE",
+                    "NAMA / KODE / TIPE",
                     "KATEGORI",
+                    "MEREK",
                     "MODAL",
                     "JUAL",
                     "STOK",
@@ -659,128 +887,183 @@ export default function Gudang({ onUpdate }: GudangProps) {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => (
-                  <tr
-                    key={p.id}
-                    className="gudang-row"
-                    style={{
-                      borderBottom: "1px solid #334155",
-                      background:
-                        editId === p.id
-                          ? "rgba(251, 191, 36, 0.1)"
-                          : "transparent",
-                    }}
-                  >
-                    {/* [UPDATE] Kolom Tanggal */}
+                {filtered.length === 0 ? (
+                  <tr>
                     <td
+                      colSpan={7}
                       style={{
-                        padding: "14px 20px",
-                        color: "#94a3b8",
-                        fontSize: "0.85rem",
-                        whiteSpace: "nowrap",
+                        padding: "40px",
+                        textAlign: "center",
+                        color: "#64748b",
                       }}
                     >
-                      {formatDate(p.created_at)}
-                    </td>
-
-                    <td style={{ padding: "14px 20px" }}>
-                      <div style={{ fontWeight: "600", color: "#f8fafc" }}>
-                        {p.name}
-                      </div>
-                      <div
-                        style={{
-                          fontSize: "0.8rem",
-                          color: "#64748b",
-                          marginTop: "2px",
-                        }}
-                      >
-                        {p.barcode} {p.item_number ? `• ${p.item_number}` : ""}
-                      </div>
-                    </td>
-                    <td style={{ padding: "14px 20px" }}>
-                      <span
-                        style={{
-                          background: "#334155",
-                          padding: "4px 8px",
-                          borderRadius: "6px",
-                          fontSize: "0.75rem",
-                          color: "#cbd5e1",
-                        }}
-                      >
-                        {p.category || "-"}
-                      </span>
-                    </td>
-                    <td style={{ padding: "14px 20px", color: "#94a3b8" }}>
-                      Rp {p.cost_price.toLocaleString("id-ID")}
-                    </td>
-                    <td
-                      style={{
-                        padding: "14px 20px",
-                        fontWeight: "bold",
-                        color: "#fbbf24",
-                      }}
-                    >
-                      Rp {p.price.toLocaleString("id-ID")}
-                    </td>
-                    <td style={{ padding: "14px 20px", textAlign: "center" }}>
-                      <span
-                        style={{
-                          background:
-                            p.stock < 5
-                              ? "rgba(239, 68, 68, 0.2)"
-                              : "rgba(16, 185, 129, 0.2)",
-                          color: p.stock < 5 ? "#fca5a5" : "#6ee7b7",
-                          padding: "4px 10px",
-                          borderRadius: "20px",
-                          fontWeight: "bold",
-                          fontSize: "0.85rem",
-                        }}
-                      >
-                        {p.stock}
-                      </span>
-                    </td>
-                    <td style={{ padding: "14px 20px" }}>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "8px",
-                          justifyContent: "center",
-                        }}
-                      >
-                        <button
-                          onClick={() => handleEdit(p)}
-                          style={{
-                            cursor: "pointer",
-                            border: "none",
-                            background: "#334155",
-                            color: "#94a3b8",
-                            padding: "6px",
-                            borderRadius: "6px",
-                            display: "flex",
-                          }}
-                          title="Edit"
-                        >
-                          <Icons.Edit />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(p.id)}
-                          style={{
-                            cursor: "pointer",
-                            border: "none",
-                            background: "rgba(239, 68, 68, 0.2)",
-                            color: "#ef4444",
-                            padding: "6px",
-                            borderRadius: "6px",
-                            display: "flex",
-                          }}
-                          title="Hapus"
-                        >
-                          <Icons.Trash />
-                        </button>
-                      </div>
+                      <i>Tidak ada barang yang cocok dengan filter.</i>
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  filtered.map((p) => (
+                    <tr
+                      key={p.id}
+                      className="gudang-row"
+                      style={{
+                        borderBottom: "1px solid #334155",
+                        background:
+                          editId === p.id
+                            ? "rgba(251, 191, 36, 0.1)"
+                            : "transparent",
+                      }}
+                    >
+                      {/* [UPDATE] Kolom Nama digabung dengan Kompatibilitas agar rapi */}
+                      <td style={{ padding: "14px 20px" }}>
+                        <div
+                          style={{
+                            fontWeight: "600",
+                            color: "#f8fafc",
+                            fontSize: "0.95rem",
+                          }}
+                        >
+                          {p.name}
+                        </div>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "6px",
+                            fontSize: "0.8rem",
+                            color: "#64748b",
+                            marginTop: "4px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              background: "#334155",
+                              color: "#cbd5e1",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                            }}
+                          >
+                            {p.barcode}
+                          </span>
+                          {p.item_number && (
+                            <span style={{ color: "#94a3b8" }}>
+                              • {p.item_number}
+                            </span>
+                          )}
+                        </div>
+                        {/* Kompatibilitas muncul di sini */}
+                        {p.compatibility && (
+                          <div
+                            style={{
+                              fontSize: "0.75rem",
+                              color: "#10b981",
+                              marginTop: "4px",
+                              fontStyle: "italic",
+                            }}
+                          >
+                            Cocok utk: {p.compatibility}
+                          </div>
+                        )}
+                      </td>
+
+                      <td style={{ padding: "14px 20px" }}>
+                        <span
+                          style={{
+                            background: "#334155",
+                            padding: "4px 8px",
+                            borderRadius: "6px",
+                            fontSize: "0.75rem",
+                            color: "#cbd5e1",
+                          }}
+                        >
+                          {p.category || "-"}
+                        </span>
+                      </td>
+
+                      {/* [UPDATE] Kolom Merek Baru */}
+                      <td
+                        style={{
+                          padding: "14px 20px",
+                          color: "#cbd5e1",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        {p.brand || "-"}
+                      </td>
+
+                      <td style={{ padding: "14px 20px", color: "#94a3b8" }}>
+                        Rp {p.cost_price.toLocaleString("id-ID")}
+                      </td>
+                      <td
+                        style={{
+                          padding: "14px 20px",
+                          fontWeight: "bold",
+                          color: "#fbbf24",
+                        }}
+                      >
+                        Rp {p.price.toLocaleString("id-ID")}
+                      </td>
+
+                      <td style={{ padding: "14px 20px", textAlign: "center" }}>
+                        <span
+                          style={{
+                            background:
+                              p.stock < 5
+                                ? "rgba(239, 68, 68, 0.2)"
+                                : "rgba(16, 185, 129, 0.2)",
+                            color: p.stock < 5 ? "#fca5a5" : "#6ee7b7",
+                            padding: "4px 10px",
+                            borderRadius: "20px",
+                            fontWeight: "bold",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          {p.stock}
+                        </span>
+                      </td>
+
+                      <td style={{ padding: "14px 20px" }}>
+                        <div
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <button
+                            onClick={() => handleEdit(p)}
+                            style={{
+                              cursor: "pointer",
+                              border: "none",
+                              background: "#334155",
+                              color: "#94a3b8",
+                              padding: "6px",
+                              borderRadius: "6px",
+                              display: "flex",
+                            }}
+                            title="Edit"
+                          >
+                            <Icons.Edit />
+                          </button>
+                          <button
+                            onClick={() => initiateDelete(p)}
+                            style={{
+                              cursor: "pointer",
+                              border: "none",
+                              background: "rgba(239, 68, 68, 0.2)",
+                              color: "#ef4444",
+                              padding: "6px",
+                              borderRadius: "6px",
+                              display: "flex",
+                            }}
+                            title="Hapus"
+                          >
+                            <Icons.Trash />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
