@@ -16,9 +16,6 @@ export default function MobileApp() {
   const [search, setSearch] = useState("");
   const [filterCat, setFilterCat] = useState("Semua");
 
-  // [BARU] State untuk preview gambar full screen di HP
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
-
   const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
   // Data Form
@@ -178,6 +175,10 @@ export default function MobileApp() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        alert("Gambar terlalu besar! Maks 2MB.");
+        return;
+      }
       try {
         const compressedString = await compressImage(file);
         setFormData({ ...formData, image_url: compressedString });
@@ -260,49 +261,6 @@ export default function MobileApp() {
           paddingBottom: 80,
         }}
       >
-        {/* [BARU] Modal Fullscreen Image */}
-        {previewImage && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(0,0,0,0.95)",
-              zIndex: 9999,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-            onClick={() => setPreviewImage(null)}
-          >
-            <img
-              src={previewImage}
-              style={{ maxWidth: "95%", maxHeight: "80%", borderRadius: "8px" }}
-              onClick={(e) => e.stopPropagation()} // Supaya klik gambar tidak close
-            />
-            <button
-              onClick={() => setPreviewImage(null)}
-              style={{
-                position: "absolute",
-                top: 20,
-                right: 20,
-                background: "white",
-                color: "black",
-                border: "none",
-                borderRadius: "50%",
-                width: "40px",
-                height: "40px",
-                fontWeight: "bold",
-                fontSize: "20px",
-              }}
-            >
-              X
-            </button>
-          </div>
-        )}
-
         <div
           style={{
             background: "white",
@@ -440,6 +398,7 @@ export default function MobileApp() {
                       key={p.id || idx}
                       style={{ borderBottom: "1px solid #f1f5f9" }}
                     >
+                      {/* [UPDATE] FOTO DIPERBESAR (80px) DI TABEL HP */}
                       <td style={tdStyle}>
                         <div
                           style={{
@@ -448,14 +407,10 @@ export default function MobileApp() {
                             alignItems: "flex-start",
                           }}
                         >
-                          {/* [UPDATE] Kotak Gambar - Bisa Diklik */}
                           <div
-                            onClick={() => {
-                              if (p.image_url) setPreviewImage(p.image_url);
-                            }}
                             style={{
-                              width: "45px",
-                              height: "45px",
+                              width: "80px",
+                              height: "80px",
                               flexShrink: 0,
                               borderRadius: "6px",
                               overflow: "hidden",
@@ -464,7 +419,6 @@ export default function MobileApp() {
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              cursor: p.image_url ? "pointer" : "default",
                             }}
                           >
                             {p.image_url ? (
@@ -480,7 +434,7 @@ export default function MobileApp() {
                                 }
                               />
                             ) : (
-                              <span style={{ fontSize: "20px", opacity: 0.5 }}>
+                              <span style={{ fontSize: "24px", opacity: 0.5 }}>
                                 📦
                               </span>
                             )}
@@ -749,6 +703,7 @@ export default function MobileApp() {
         placeholder="Nama barang..."
       />
 
+      {/* [UPDATE] Bagian Input Foto dengan Label Status di HP */}
       <label style={labelStyle}>Foto Barang</label>
       <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
         <input
@@ -775,43 +730,68 @@ export default function MobileApp() {
         >
           📷 {formData.image_url ? "Ganti Foto" : "Pilih Foto / Kamera"}
         </label>
+
         {formData.image_url && (
           <div
             style={{
               width: "45px",
-              height: "45px",
+              height: "auto", // UBAH KE AUTO AGAR TEKS MUAT
               flexShrink: 0,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
               borderRadius: "8px",
               overflow: "hidden",
-              position: "relative",
               border: "1px solid #cbd5e1",
               background: "white",
+              paddingBottom: "4px",
             }}
           >
-            <img
-              src={formData.image_url}
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-              onError={(e: any) => (e.target.style.display = "none")}
-            />
-            <button
-              onClick={() => setFormData({ ...formData, image_url: "" })}
+            <div
               style={{
-                position: "absolute",
-                top: 0,
-                right: 0,
-                background: "red",
-                color: "white",
-                border: "none",
-                width: "15px",
-                height: "15px",
-                fontSize: "10px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
+                position: "relative",
+                width: "45px",
+                height: "45px",
+                overflow: "hidden",
+                borderRadius: "8px 8px 0 0",
               }}
             >
-              X
-            </button>
+              <img
+                src={formData.image_url}
+                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                onError={(e: any) => (e.target.style.display = "none")}
+              />
+              <button
+                onClick={() => setFormData({ ...formData, image_url: "" })}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  right: 0,
+                  background: "red",
+                  color: "white",
+                  border: "none",
+                  width: "15px",
+                  height: "15px",
+                  fontSize: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                X
+              </button>
+            </div>
+
+            {/* LABEL STATUS KOMPRESI DI HP */}
+            <div
+              style={{ fontSize: "8px", marginTop: "2px", fontWeight: "bold" }}
+            >
+              {formData.image_url.startsWith("data:image/webp") ? (
+                <span style={{ color: "green" }}>✅ WebP</span>
+              ) : (
+                <span style={{ color: "red" }}>JPG</span>
+              )}
+            </div>
           </div>
         )}
       </div>
