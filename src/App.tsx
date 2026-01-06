@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Gudang from "./pages/Gudang";
 import Kasir from "./pages/Kasir";
 import Laporan from "./pages/Laporan";
+import MobileApp from "./pages/MobileApp"; // [BARU] Import Halaman HP
 import { Product, CartItem } from "./types";
 
 // --- ICONS NAVBAR ---
@@ -105,14 +106,31 @@ const NavIcons = {
       <line x1="12" y1="15" x2="12" y2="3" />
     </svg>
   ),
+  Smartphone: () => (
+    <svg
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+      <line x1="12" y1="18" x2="12.01" y2="18" />
+    </svg>
+  ),
 };
 
 function App() {
-  const [page, setPage] = useState<"gudang" | "kasir" | "laporan">("kasir");
+  // [BARU] Cek apakah URL-nya "/mobile" (untuk tampilan HP)
+  const isMobileView = window.location.pathname === "/mobile";
+
+  const [page, setPage] = useState<"gudang" | "kasir" | "laporan">("laporan");
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [pay, setPay] = useState("");
   const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const [serverIp, setServerIp] = useState<string>(""); // [BARU] Simpan IP Server
 
   const refreshProducts = async () => {
     try {
@@ -128,14 +146,24 @@ function App() {
     refreshProducts();
   }, [lastUpdate]);
 
-  // --- [BARU] LOGIKA SHORTCUT NAVIGASI (CTRL + TAB) ---
+  // [BARU] Listen IP Server dari Main Process
+  useEffect(() => {
+    // @ts-ignore
+    window.ipcRenderer?.on("server-ip", (_event, ip) => {
+      setServerIp(ip);
+    });
+    // @ts-ignore
+    window.ipcRenderer?.on("main-process-message", (_event, msg) => {
+      // Refresh jika ada transaksi masuk dari HP
+      if (msg.includes("Transaksi baru")) setLastUpdate(Date.now());
+    });
+  }, []);
+
+  // LOGIKA SHORTCUT NAVIGASI (CTRL + TAB)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cek apakah tombol yang ditekan adalah Ctrl (atau Command di Mac) + Tab
       if ((e.ctrlKey || e.metaKey) && e.key === "Tab") {
-        e.preventDefault(); // Mencegah pindah fokus browser default
-
-        // Rotasi Halaman: Kasir -> Gudang -> Laporan -> Kasir
+        e.preventDefault();
         setPage((prevPage) => {
           if (prevPage === "kasir") return "gudang";
           if (prevPage === "gudang") return "laporan";
@@ -143,7 +171,6 @@ function App() {
         });
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
@@ -158,6 +185,12 @@ function App() {
     await window.api.restoreDatabase();
   };
 
+  // [PENTING] Jika mode HP, tampilkan MobileApp saja (Full Screen)
+  if (isMobileView) {
+    return <MobileApp />;
+  }
+
+  // --- TAMPILAN DESKTOP (LAPTOP) ---
   const currentDate = new Date().toLocaleDateString("id-ID", {
     weekday: "long",
     day: "numeric",
@@ -278,6 +311,28 @@ function App() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+          {/* [BARU] Indikator IP Server untuk HP */}
+          {serverIp && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                color: "#10b981",
+                fontSize: "0.85rem",
+                fontWeight: "600",
+                background: "rgba(16, 185, 129, 0.1)",
+                padding: "6px 12px",
+                borderRadius: "6px",
+                border: "1px solid rgba(16, 185, 129, 0.2)",
+                cursor: "help",
+              }}
+              title="Ketik alamat ini di Browser HP Anda untuk akses Kasir Mobile"
+            >
+              <NavIcons.Smartphone /> {serverIp}
+            </div>
+          )}
+
           <div
             style={{
               display: "flex",

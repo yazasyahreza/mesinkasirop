@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Product } from "../types";
+import { compressImage } from "../utils/imageCompressor";
 
 // --- IKON SVG CLEAN ---
 const Icons = {
@@ -111,6 +112,20 @@ const Icons = {
       <polyline points="22 4 12 14.01 9 11.01" />
     </svg>
   ),
+  Image: () => (
+    <svg
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+    >
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <circle cx="8.5" cy="8.5" r="1.5" />
+      <polyline points="21 15 16 10 5 21" />
+    </svg>
+  ),
 };
 
 interface GudangProps {
@@ -125,7 +140,6 @@ export default function Gudang({ onUpdate }: GudangProps) {
     type: "success" | "error";
   }>({ show: false, msg: "", type: "success" });
 
-  // [UPDATE] State form ditambah brand & compatibility
   const [form, setForm] = useState({
     barcode: "",
     name: "",
@@ -134,8 +148,9 @@ export default function Gudang({ onUpdate }: GudangProps) {
     stock: "",
     category: "",
     item_number: "",
-    brand: "", // Baru
-    compatibility: "", // Baru
+    brand: "",
+    compatibility: "",
+    image_url: "",
   });
 
   const [editId, setEditId] = useState<number | null>(null);
@@ -168,14 +183,17 @@ export default function Gudang({ onUpdate }: GudangProps) {
     }, 3000);
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return "-";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        // Proses Kompresi Berjalan di sini (Mengubah ke WebP)
+        const compressedString = await compressImage(file);
+        setForm({ ...form, image_url: compressedString });
+      } catch (error) {
+        showNotification("Gagal memproses gambar", "error");
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -205,7 +223,8 @@ export default function Gudang({ onUpdate }: GudangProps) {
         category: "",
         item_number: "",
         brand: "",
-        compatibility: "", // Reset form baru
+        compatibility: "",
+        image_url: "",
       });
       loadProducts();
       onUpdate();
@@ -226,27 +245,23 @@ export default function Gudang({ onUpdate }: GudangProps) {
     if (!deleteTargetId) return;
     // @ts-ignore
     const res = await window.api.deleteProduct(deleteTargetId);
-
     setShowDeleteModal(false);
     setDeleteTargetId(null);
-
     if (res.success) {
       loadProducts();
       onUpdate();
       showNotification("Barang dihapus");
     } else {
-      if (res.reason === "LOCKED") {
+      if (res.reason === "LOCKED")
         showNotification("Gagal: Barang ada di transaksi hari ini", "error");
-      } else {
+      else
         showNotification(
           "Gagal: " + (res.msg || res.error || "Error sistem"),
           "error"
         );
-      }
     }
   };
 
-  // [UPDATE] Handle Edit mengisi form brand & compatibility
   const handleEdit = (p: Product) => {
     setEditId(p.id);
     setForm({
@@ -257,8 +272,9 @@ export default function Gudang({ onUpdate }: GudangProps) {
       stock: p.stock.toString(),
       category: p.category || "",
       item_number: p.item_number || "",
-      brand: p.brand || "", // Load data baru
-      compatibility: p.compatibility || "", // Load data baru
+      brand: p.brand || "",
+      compatibility: p.compatibility || "",
+      image_url: (p as any).image_url || "",
     });
   };
 
@@ -278,14 +294,15 @@ export default function Gudang({ onUpdate }: GudangProps) {
   const lowStockCount = activeProducts.filter((p) => p.stock < 5).length;
 
   const filtered = products.filter((p) => {
-    const term = search.toLowerCase(); // Input user jadi huruf kecil
-    const matchesSearch =
-      (p.name && p.name.toLowerCase().includes(term)) ||
-      (p.barcode && p.barcode.toLowerCase().includes(term)) || // <--- PERBAIKAN DI SINI (Tambah toLowerCase)
-      (p.item_number && p.item_number.toLowerCase().includes(term)) ||
-      (p.brand && p.brand.toLowerCase().includes(term)) ||
-      (p.compatibility && p.compatibility.toLowerCase().includes(term));
-
+    const searchTerms = search
+      .toLowerCase()
+      .split(" ")
+      .filter((term) => term.trim() !== "");
+    const productDataString =
+      `${p.name} ${p.barcode} ${p.item_number} ${p.brand} ${p.compatibility}`.toLowerCase();
+    const matchesSearch = searchTerms.every((term) =>
+      productDataString.includes(term)
+    );
     const matchesStock = showLowStock ? p.stock < 5 : true;
     const matchesCategory = selectedCategory
       ? p.category === selectedCategory
@@ -503,7 +520,6 @@ export default function Gudang({ onUpdate }: GudangProps) {
             />
           </div>
 
-          {/* INPUT BARU: MEREK & KATEGORI (SEBARIS) */}
           <div style={{ display: "flex", gap: "12px", marginBottom: "15px" }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Kategori</label>
@@ -531,7 +547,109 @@ export default function Gudang({ onUpdate }: GudangProps) {
             </div>
           </div>
 
-          {/* INPUT BARU: KOMPATIBILITAS */}
+          {/* INPUT GAMBAR (FORM) DENGAN STATUS WEBP/JPG */}
+          <div style={{ marginBottom: "15px" }}>
+            <label style={labelStyle}>Foto Barang</label>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <input
+                type="file"
+                id="file-upload"
+                accept="image/*"
+                onChange={handleFileChange}
+                style={{ display: "none" }}
+              />
+              <label
+                htmlFor="file-upload"
+                style={{
+                  ...inputStyle,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  background: "#334155",
+                  color: "#cbd5e1",
+                  border: "1px dashed #475569",
+                }}
+              >
+                <Icons.Image /> {form.image_url ? "Ganti Foto" : "Pilih Foto"}
+              </label>
+
+              {/* Preview Gambar Kecil + Label Status */}
+              {form.image_url && (
+                <div
+                  style={{
+                    position: "relative",
+                    width: "50px",
+                    height: "auto",
+                    flexShrink: 0,
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "relative",
+                      width: "50px",
+                      height: "50px",
+                    }}
+                  >
+                    <img
+                      src={form.image_url}
+                      alt="preview"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "cover",
+                        borderRadius: "6px",
+                        border: "1px solid #475569",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, image_url: "" })}
+                      style={{
+                        position: "absolute",
+                        top: -5,
+                        right: -5,
+                        background: "#ef4444",
+                        borderRadius: "50%",
+                        width: "18px",
+                        height: "18px",
+                        border: "none",
+                        color: "white",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "10px",
+                        fontWeight: "bold",
+                      }}
+                    >
+                      X
+                    </button>
+                  </div>
+
+                  {/* LABEL STATUS */}
+                  <div
+                    style={{
+                      fontSize: "9px",
+                      marginTop: "4px",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    {form.image_url.startsWith("data:image/webp") ? (
+                      <span style={{ color: "#4ade80" }}>✅ WebP</span>
+                    ) : (
+                      <span style={{ color: "#f87171" }}>⚠️ JPG</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
           <div style={{ marginBottom: "15px" }}>
             <label style={labelStyle}>Kompatibilitas (Tipe Motor)</label>
             <input
@@ -552,7 +670,7 @@ export default function Gudang({ onUpdate }: GudangProps) {
                 onChange={(e) =>
                   setForm({ ...form, item_number: e.target.value })
                 }
-                placeholder="A1"
+                placeholder="A1 / rak oli"
                 style={inputStyle}
               />
             </div>
@@ -632,6 +750,7 @@ export default function Gudang({ onUpdate }: GudangProps) {
                   item_number: "",
                   brand: "",
                   compatibility: "",
+                  image_url: "",
                 });
               }}
               style={{
@@ -857,8 +976,8 @@ export default function Gudang({ onUpdate }: GudangProps) {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
                 <tr>
-                  {/* [UPDATE] Header Kolom disesuaikan */}
                   {[
+                    "FOTO",
                     "NAMA / KODE / TIPE",
                     "KATEGORI",
                     "MEREK",
@@ -872,7 +991,7 @@ export default function Gudang({ onUpdate }: GudangProps) {
                       style={{
                         background: "#0f172a",
                         padding: "16px 20px",
-                        textAlign: i > 4 ? "center" : "left",
+                        textAlign: i > 5 ? "center" : "left",
                         fontSize: "0.75rem",
                         color: "#cbd5e1",
                         fontWeight: "700",
@@ -890,7 +1009,7 @@ export default function Gudang({ onUpdate }: GudangProps) {
                 {filtered.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={7}
+                      colSpan={8}
                       style={{
                         padding: "40px",
                         textAlign: "center",
@@ -913,7 +1032,49 @@ export default function Gudang({ onUpdate }: GudangProps) {
                             : "transparent",
                       }}
                     >
-                      {/* [UPDATE] Kolom Nama digabung dengan Kompatibilitas agar rapi */}
+                      {/* FOTO DIPERBESAR LANGSUNG DI TABEL (100px) */}
+                      <td style={{ padding: "14px 20px" }}>
+                        {(p as any).image_url ? (
+                          <div
+                            style={{
+                              width: "100px",
+                              height: "100px",
+                              borderRadius: "8px",
+                              overflow: "hidden",
+                              border: "1px solid #334155",
+                            }}
+                          >
+                            <img
+                              src={(p as any).image_url}
+                              alt="img"
+                              style={{
+                                width: "100%",
+                                height: "100%",
+                                objectFit: "cover",
+                              }}
+                              onError={(e: any) =>
+                                (e.target.style.display = "none")
+                              }
+                            />
+                          </div>
+                        ) : (
+                          <div
+                            style={{
+                              width: "100px",
+                              height: "100px",
+                              borderRadius: "8px",
+                              background: "#334155",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#475569",
+                            }}
+                          >
+                            <Icons.Image />
+                          </div>
+                        )}
+                      </td>
+
                       <td style={{ padding: "14px 20px" }}>
                         <div
                           style={{
@@ -945,12 +1106,13 @@ export default function Gudang({ onUpdate }: GudangProps) {
                             {p.barcode}
                           </span>
                           {p.item_number && (
-                            <span style={{ color: "#94a3b8" }}>
+                            <span
+                              style={{ color: "#d97706", fontWeight: "bold" }}
+                            >
                               • {p.item_number}
                             </span>
                           )}
                         </div>
-                        {/* Kompatibilitas muncul di sini */}
                         {p.compatibility && (
                           <div
                             style={{
@@ -964,7 +1126,6 @@ export default function Gudang({ onUpdate }: GudangProps) {
                           </div>
                         )}
                       </td>
-
                       <td style={{ padding: "14px 20px" }}>
                         <span
                           style={{
@@ -978,8 +1139,6 @@ export default function Gudang({ onUpdate }: GudangProps) {
                           {p.category || "-"}
                         </span>
                       </td>
-
-                      {/* [UPDATE] Kolom Merek Baru */}
                       <td
                         style={{
                           padding: "14px 20px",
@@ -989,7 +1148,6 @@ export default function Gudang({ onUpdate }: GudangProps) {
                       >
                         {p.brand || "-"}
                       </td>
-
                       <td style={{ padding: "14px 20px", color: "#94a3b8" }}>
                         Rp {p.cost_price.toLocaleString("id-ID")}
                       </td>
@@ -1002,7 +1160,6 @@ export default function Gudang({ onUpdate }: GudangProps) {
                       >
                         Rp {p.price.toLocaleString("id-ID")}
                       </td>
-
                       <td style={{ padding: "14px 20px", textAlign: "center" }}>
                         <span
                           style={{
@@ -1020,7 +1177,6 @@ export default function Gudang({ onUpdate }: GudangProps) {
                           {p.stock}
                         </span>
                       </td>
-
                       <td style={{ padding: "14px 20px" }}>
                         <div
                           style={{

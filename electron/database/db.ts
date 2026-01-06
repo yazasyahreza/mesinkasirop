@@ -18,7 +18,7 @@ const getLocalTime = () => {
 };
 
 export function initDB() {
-  // 1. Buat Tabel Utama
+  // 1. Buat Tabel Produk (Tetap ada image_url)
   db.prepare(
     `
     CREATE TABLE IF NOT EXISTS products (
@@ -29,9 +29,10 @@ export function initDB() {
       price INTEGER NOT NULL,
       stock INTEGER DEFAULT 0,
       category TEXT,
-      item_number TEXT,
+      item_number TEXT, 
       brand TEXT,
       compatibility TEXT,
+      image_url TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `
@@ -44,10 +45,11 @@ export function initDB() {
   try {
     db.prepare("ALTER TABLE products ADD COLUMN compatibility TEXT").run();
   } catch (e) {}
+  try {
+    db.prepare("ALTER TABLE products ADD COLUMN image_url TEXT").run();
+  } catch (e) {}
 
-  // [DIHAPUS] Migrasi license_plate
-
-  // --- Tabel Transaksi ---
+  // --- Tabel Transaksi (Versi Bersih Tanpa Customer/Status) ---
   db.prepare(
     `
     CREATE TABLE IF NOT EXISTS transactions (
@@ -102,7 +104,7 @@ export function getProducts() {
 export function addProduct(p: any) {
   try {
     const stmt = db.prepare(
-      "INSERT INTO products (barcode, name, cost_price, price, stock, category, item_number, brand, compatibility) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+      "INSERT INTO products (barcode, name, cost_price, price, stock, category, item_number, brand, compatibility, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     );
     const info = stmt.run(
       p.barcode,
@@ -113,7 +115,8 @@ export function addProduct(p: any) {
       p.category || "",
       p.item_number || "",
       p.brand || "",
-      p.compatibility || ""
+      p.compatibility || "",
+      p.image_url || ""
     );
 
     if (p.stock > 0) {
@@ -132,8 +135,9 @@ export function updateProduct(id: number, p: any) {
     const oldProd: any = db
       .prepare("SELECT stock, name FROM products WHERE id = ?")
       .get(id);
+
     const stmt = db.prepare(
-      "UPDATE products SET barcode=?, name=?, cost_price=?, price=?, stock=?, category=?, item_number=?, brand=?, compatibility=? WHERE id=?"
+      "UPDATE products SET barcode=?, name=?, cost_price=?, price=?, stock=?, category=?, item_number=?, brand=?, compatibility=?, image_url=? WHERE id=?"
     );
     const info = stmt.run(
       p.barcode,
@@ -145,6 +149,7 @@ export function updateProduct(id: number, p: any) {
       p.item_number || "",
       p.brand || "",
       p.compatibility || "",
+      p.image_url || "",
       id
     );
 
@@ -180,14 +185,12 @@ export function deleteProduct(id: number) {
   }
 }
 
-// --- KASIR ---
-// [DIKEMBALIKAN KE 4 PARAMETER]
+// --- KASIR & LAPORAN ---
 export function createTransaction(
   items: any[],
   totalAmount: number,
   discount: number,
   paymentMethod: string
-  // Parameter licensePlate DIHAPUS
 ) {
   const executeTx = db.transaction(() => {
     let totalCost = 0;
@@ -197,7 +200,6 @@ export function createTransaction(
     const finalAmount = totalAmount - discount;
     const totalProfit = finalAmount - totalCost;
 
-    // [DIHAPUS] Kolom license_plate dari INSERT
     const info = db
       .prepare(
         "INSERT INTO transactions (total_amount, discount, final_amount, total_profit, payment_method, payment_date) VALUES (?, ?, ?, ?, ?, ?)"
@@ -236,7 +238,6 @@ export function createTransaction(
   }
 }
 
-// --- LAPORAN ---
 export function getTodayReport() {
   try {
     const stmt = db.prepare(
@@ -296,18 +297,12 @@ export function getStockLogs() {
   }
 }
 
-// ===============================================
-// [REVISI] FUNGSI CHART BULANAN (FIX NAN & COLUMN)
-// ===============================================
 export function getMonthlyChart() {
   try {
-    const stmt = db.prepare(`
-      SELECT payment_date, total_amount as gross_total, total_profit as profit 
-      FROM transactions 
-      ORDER BY id DESC
-    `);
+    const stmt = db.prepare(
+      `SELECT payment_date, total_amount as gross_total, total_profit as profit FROM transactions ORDER BY id DESC`
+    );
     const rows = stmt.all();
-
     const grouped: Record<
       string,
       { revenue: number; profit: number; dateObj: Date }
@@ -318,7 +313,6 @@ export function getMonthlyChart() {
     rows.forEach((row: any) => {
       let date: Date | null = null;
       const rawDate = String(row.payment_date);
-
       if (rawDate.includes("/")) {
         try {
           const cleanDateStr = rawDate.split(" ")[0].replace(",", "").trim();
@@ -327,28 +321,21 @@ export function getMonthlyChart() {
             const day = parseInt(parts[0], 10);
             const month = parseInt(parts[1], 10) - 1;
             const year = parseInt(parts[2], 10);
-            if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+            if (!isNaN(day) && !isNaN(month) && !isNaN(year))
               date = new Date(year, month, day);
-            }
           }
         } catch (e) {}
       }
-      if (!date || isNaN(date.getTime())) {
-        date = new Date(rawDate);
-      }
+      if (!date || isNaN(date.getTime())) date = new Date(rawDate);
 
       if (date && !isNaN(date.getTime()) && date >= sixMonthsAgo) {
         const key = `${date.getFullYear()}-${String(
           date.getMonth() + 1
         ).padStart(2, "0")}`;
-
-        if (!grouped[key]) {
+        if (!grouped[key])
           grouped[key] = { revenue: 0, profit: 0, dateObj: date };
-        }
-
         const revenue = Number(row.gross_total) || 0;
         const profit = Number(row.profit) || 0;
-
         grouped[key].revenue += revenue;
         grouped[key].profit += profit;
       }
@@ -362,7 +349,6 @@ export function getMonthlyChart() {
           month: "short",
         });
         const yearShort = item.dateObj.getFullYear().toString().slice(-2);
-
         return {
           label: `${monthName} '${yearShort}`,
           revenue: item.revenue,
@@ -375,7 +361,6 @@ export function getMonthlyChart() {
       const yearShort = now.getFullYear().toString().slice(-2);
       return [{ label: `${monthName} '${yearShort}`, revenue: 0, profit: 0 }];
     }
-
     return result;
   } catch (error) {
     console.error("Error chart:", error);
@@ -383,27 +368,14 @@ export function getMonthlyChart() {
   }
 }
 
-// ===============================================
-// FUNGSI TOP PRODUCT
-// ===============================================
 export function getTopProductsByCategory() {
   try {
-    const stmt = db.prepare(`
-      SELECT 
-        p.category,
-        p.name,
-        p.brand,
-        p.stock as current_stock,
-        COALESCE(SUM(ti.qty), 0) as total_sold,
-        COALESCE(SUM(ti.price_at_transaction * ti.qty), 0) as total_revenue
-      FROM transaction_items ti
-      JOIN products p ON ti.product_id = p.id
-      WHERE p.category IS NOT NULL AND p.category != ''
-      GROUP BY p.id
-      ORDER BY p.category ASC, total_sold DESC
-    `);
+    const stmt = db.prepare(
+      `SELECT p.category, p.name, p.brand, p.stock as current_stock, COALESCE(SUM(ti.qty), 0) as total_sold, COALESCE(SUM(ti.price_at_transaction * ti.qty), 0) as total_revenue FROM transaction_items ti JOIN products p ON ti.product_id = p.id WHERE p.category IS NOT NULL AND p.category != '' GROUP BY p.id ORDER BY p.category ASC, total_sold DESC`
+    );
     return stmt.all();
   } catch (e) {
     return [];
   }
 }
+  

@@ -3,6 +3,9 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "fs";
+import express from "express";
+import cors from "cors";
+import ip from "ip";
 
 import {
   initDB,
@@ -217,6 +220,120 @@ app.whenReady().then(() => {
     } catch (e: any) {
       return { success: false, msg: e.message };
     }
+  });
+
+  // ==========================================
+  // [BARU] SERVER LOKAL UNTUK AKSES DARI HP
+  // ==========================================
+  const server = express();
+  server.use(cors());
+  server.use(express.json());
+
+  const PORT = 3000;
+
+  // 1. API Cek Koneksi
+  // Tambahkan ': any' dan ganti 'req' jadi '_req' (agar tidak dianggap error unused)
+  server.get("/", (_req: any, res: any) => {
+    res.json({ status: "online", msg: "Halo dari Laptop Ayah!" });
+  });
+
+  // 2. API Ambil Produk
+  // Ganti 'req' jadi '_req' karena kita tidak butuh data dari HP, cuma kirim balik
+  server.get("/api/products", (_req: any, res: any) => {
+    try {
+      const products = getProducts();
+      res.json(products);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 3. API Tambah Barang
+  // API UNTUK SIMPAN DATA DARI HP (BISA TAMBAH BARU / EDIT)
+  server.post("/api/product/save", (req: any, res: any) => {
+    try {
+      const p = req.body;
+
+      console.log("Menerima data dari HP:", p);
+
+      if (p.id) {
+        // JIKA ADA ID = EDIT BARANG LAMA
+        const result = updateProduct(p.id, p);
+        res.json(result);
+      } else {
+        // JIKA TIDAK ADA ID = TAMBAH BARANG BARU
+        const result = addProduct(p);
+        res.json(result);
+      }
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  server.get("/api/categories", (_req: any, res: any) => {
+    try {
+      // 1. Ambil semua produk
+      const allProducts = getProducts();
+
+      // 2. Ambil nama kategorinya saja, lalu buang yang duplikat pakai 'Set'
+      // Hasilnya: ["Oli", "Ban", "Sparepart", ...] yang unik
+      const uniqueCategories = [
+        ...new Set(allProducts.map((p: any) => p.category)),
+      ];
+
+      // 3. Urutkan abjad A-Z biar rapi
+      uniqueCategories.sort();
+
+      res.json(uniqueCategories);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // 4. API Hapus Barang
+  server.delete("/api/product/:id", (req: any, res: any) => {
+    try {
+      const id = parseInt(req.params.id);
+
+      // Pastikan fungsi 'deleteProduct' sudah di-import di paling atas file!
+      const result = deleteProduct(id);
+
+      if (result.success) {
+        res.json({ success: true });
+      } else {
+        res.status(500).json({ success: false, error: result.error });
+      }
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // 5. API Cek Stok (Scan Barcode)
+  server.get("/api/product/:barcode", (req: any, res: any) => {
+    try {
+      const all: any[] = getProducts();
+      // Pastikan req.params.barcode terbaca
+      const found = all.find((p: any) => p.barcode === req.params.barcode);
+      if (found) res.json({ success: true, data: found });
+      else res.json({ success: false, msg: "Barang tidak ditemukan" });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Jalankan Server
+  server.listen(PORT, "0.0.0.0", () => {
+    // Kita gunakan require('ip') di sini jika import ip bermasalah,
+    // atau biarkan seperti sebelumnya jika import sudah jalan.
+    // console.log("Server HP Jalan...");
+
+    // Agar aman dari error 'ip' yang mungkin belum ada types-nya:
+    const ipAddress = ip.address();
+    console.log(`SERVER HP BERJALAN DI: http://${ipAddress}:${PORT}`);
+
+    setTimeout(() => {
+      win?.webContents.send("server-ip", `http://${ipAddress}:${PORT}`);
+    }, 3000);
   });
 
   createWindow();
